@@ -1,14 +1,73 @@
-import React from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import React, { useState, useEffect, useRef } from 'react';
+import { View, Text, StyleSheet, Dimensions } from 'react-native';
+import { CameraView, useCameraPermissions } from 'expo-camera';
 
-const ScannerArea = ({ isScanning }) => {
+const ScannerArea = ({ isScanning, onBarcodeScanned }) => {
+  const [permission, requestPermission] = useCameraPermissions();
+  const [hasScanned, setHasScanned] = useState(false);
+  const cameraRef = useRef(null);
+
+  useEffect(() => {
+    if (isScanning) {
+      setHasScanned(false);
+    }
+  }, [isScanning]);
+
+  const handleBarcodeScanned = ({ type, data }) => {
+    if (isScanning && !hasScanned) {
+      setHasScanned(true);
+      onBarcodeScanned({ type, data });
+    }
+  };
+
+  if (!permission) {
+    return (
+      <View style={styles.permissionContainer}>
+        <Text style={styles.permissionText}>Solicitando permisos...</Text>
+      </View>
+    );
+  }
+
+  if (!permission.granted) {
+    return (
+      <View style={styles.permissionContainer}>
+        <Text style={styles.permissionText}>Se necesita acceso a la cámara para escanear códigos</Text>
+        <Text style={styles.permissionButton} onPress={requestPermission}>
+          Permitir Cámara
+        </Text>
+      </View>
+    );
+  }
+
   return (
     <View style={styles.scannerArea}>
       <View style={styles.scannerBox}>
-        <Text style={styles.scanText}>ENFOCA EL CODIGO</Text>
-        {isScanning && (
-          <View style={styles.scanningOverlay}>
-            <Text style={styles.scanningText}>ESCANEANDO...</Text>
+        {isScanning ? (
+          <CameraView
+            ref={cameraRef}
+            style={styles.camera}
+            facing="back"
+            barcodeScannerSettings={{
+              barcodeTypes: ['qr', 'pdf417', 'ean13', 'ean8', 'upc_a', 'upc_e'],
+            }}
+            onBarcodeScanned={handleBarcodeScanned}
+          >
+            <View style={styles.scannerOverlay}>
+              <Text style={styles.scanText}>ENFOCA EL CÓDIGO</Text>
+              <View style={styles.scanFrame} />
+              {isScanning && (
+                <View style={styles.scanningOverlay}>
+                  <Text style={styles.scanningText}>ESCANEANDO...</Text>
+                </View>
+              )}
+            </View>
+          </CameraView>
+        ) : (
+          <View style={styles.placeholder}>
+            <Text style={styles.scanText}>ENFOCA EL CÓDIGO</Text>
+            <Text style={styles.instructionText}>
+              Presiona "INICIAR ESCANEO" para comenzar
+            </Text>
           </View>
         )}
       </View>
@@ -16,28 +75,59 @@ const ScannerArea = ({ isScanning }) => {
   );
 };
 
+const { width } = Dimensions.get('window');
+const scannerSize = width * 0.7;
+
 const styles = StyleSheet.create({
   scannerArea: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    padding: 30,
+    padding: 20,
   },
   scannerBox: {
-    width: 280,
-    height: 280,
+    width: scannerSize,
+    height: scannerSize,
     borderWidth: 4,
     borderColor: '#000000',
     borderRadius: 15,
+    overflow: 'hidden',
+    backgroundColor: '#f8f9fa',
+  },
+  camera: {
+    flex: 1,
+  },
+  scannerOverlay: {
+    flex: 1,
+    backgroundColor: 'transparent',
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#f8f9fa',
-    position: 'relative',
+  },
+  scanFrame: {
+    width: scannerSize * 0.6,
+    height: scannerSize * 0.6,
+    borderWidth: 2,
+    borderColor: '#ffffff',
+    borderRadius: 10,
+    marginVertical: 20,
+  },
+  placeholder: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#e9ecef',
+    padding: 20,
   },
   scanText: {
-    fontSize: 20,
+    fontSize: 18,
     fontWeight: 'bold',
     color: '#000000',
+    textAlign: 'center',
+    marginBottom: 10,
+  },
+  instructionText: {
+    fontSize: 14,
+    color: '#6c757d',
     textAlign: 'center',
   },
   scanningOverlay: {
@@ -46,15 +136,34 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     bottom: 0,
-    backgroundColor: 'rgba(231, 76, 60, 0.2)',
     justifyContent: 'center',
     alignItems: 'center',
-    borderRadius: 15,
   },
   scanningText: {
-    color: '#000000',
+    color: '#ffffff',
     fontWeight: 'bold',
-    fontSize: 18,
+    fontSize: 16,
+    backgroundColor: 'rgba(0,0,0,0.7)',
+    padding: 10,
+    borderRadius: 5,
+  },
+  permissionContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 30,
+  },
+  permissionText: {
+    fontSize: 16,
+    textAlign: 'center',
+    marginBottom: 20,
+    color: '#6c757d',
+  },
+  permissionButton: {
+    fontSize: 16,
+    color: '#007AFF',
+    fontWeight: 'bold',
+    padding: 10,
   },
 });
 

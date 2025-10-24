@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, StyleSheet } from 'react-native';
+import { View, StyleSheet, Alert } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 
 // Componentes 
@@ -9,13 +9,33 @@ import ScanControls from '../components/ScanControls';
 
 const ScanPhase1Screen = ({ navigation }) => {
   const [isScanning, setIsScanning] = useState(false);
+  const [scanResult, setScanResult] = useState(null);
 
   const startScanning = () => {
     setIsScanning(true);
-    setTimeout(() => {
-      setIsScanning(false);
-      navigation.navigate('ScanPhase2');
-    }, 2000);
+    setScanResult(null);
+  };
+
+  const handleBarcodeScanned = ({ type, data }) => {
+    console.log('Código escaneado:', { type, data });
+    setScanResult(data);
+    setIsScanning(false);
+    
+    // Mostrar resultado y navegar
+    Alert.alert(
+      'Código Escaneado',
+      `Contenido: ${data}`,
+      [
+        {
+          text: 'Continuar',
+          onPress: () => navigation.navigate('ScanPhase2', { scannedData: data })
+        }
+      ]
+    );
+  };
+
+  const stopScanning = () => {
+    setIsScanning(false);
   };
 
   return (
@@ -28,11 +48,16 @@ const ScanPhase1Screen = ({ navigation }) => {
         instruction="Escanea el Código del Pedido para registrar"
       />
       
-      <ScannerArea isScanning={isScanning} />
+      <ScannerArea 
+        isScanning={isScanning}
+        onBarcodeScanned={handleBarcodeScanned}
+      />
       
       <ScanControls 
         isScanning={isScanning}
-        onStartScanning={startScanning}
+        onStartScanning={isScanning ? stopScanning : startScanning}
+        buttonText={isScanning ? 'DETENER ESCANEO' : 'INICIAR ESCANEO'}
+        scanningText="ESCANEANDO..."
       />
     </View>
   );

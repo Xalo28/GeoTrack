@@ -15,11 +15,12 @@ const ScanControls = ({
       <TouchableOpacity 
         style={[
           styles.scanButton,
-          (isScanning || disabled) && styles.scanButtonDisabled,
+          isScanning ? styles.scanButtonActive : styles.scanButtonInactive,
+          disabled && styles.scanButtonDisabled,
           buttonStyle
         ]}
         onPress={onStartScanning}
-        disabled={isScanning || disabled}
+        disabled={disabled}
       >
         <Text style={[styles.scanButtonText, textStyle]}>
           {isScanning ? scanningText : buttonText}
@@ -35,10 +36,15 @@ const styles = StyleSheet.create({
     backgroundColor: '#f8f9fa',
   },
   scanButton: {
-    backgroundColor: '#27ae60',
     padding: 18,
     borderRadius: 10,
     alignItems: 'center',
+  },
+  scanButtonInactive: {
+    backgroundColor: '#27ae60',
+  },
+  scanButtonActive: {
+    backgroundColor: '#e74c3c',
   },
   scanButtonDisabled: {
     backgroundColor: '#bdc3c7',
