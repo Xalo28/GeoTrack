@@ -43,15 +43,18 @@ const ScannerArea = ({ isScanning, onBarcodeScanned }) => {
     <View style={styles.scannerArea}>
       <View style={styles.scannerBox}>
         {isScanning ? (
-          <CameraView
-            ref={cameraRef}
-            style={styles.camera}
-            facing="back"
-            barcodeScannerSettings={{
-              barcodeTypes: ['qr', 'pdf417', 'ean13', 'ean8', 'upc_a', 'upc_e'],
-            }}
-            onBarcodeScanned={handleBarcodeScanned}
-          >
+          <View style={styles.cameraContainer}>
+            <CameraView
+              ref={cameraRef}
+              style={styles.camera}
+              facing="back"
+              barcodeScannerSettings={{
+                barcodeTypes: ['qr', 'pdf417', 'ean13', 'ean8', 'upc_a', 'upc_e'],
+              }}
+              onBarcodeScanned={handleBarcodeScanned}
+            />
+            
+            {/* OVERLAY CON POSICIÓN ABSOLUTA */}
             <View style={styles.scannerOverlay}>
               <Text style={styles.scanText}>ENFOCA EL CÓDIGO</Text>
               <View style={styles.scanFrame} />
@@ -61,7 +64,7 @@ const ScannerArea = ({ isScanning, onBarcodeScanned }) => {
                 </View>
               )}
             </View>
-          </CameraView>
+          </View>
         ) : (
           <View style={styles.placeholder}>
             <Text style={styles.scanText}>ENFOCA EL CÓDIGO</Text>
@@ -94,11 +97,19 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
     backgroundColor: '#f8f9fa',
   },
+  cameraContainer: {
+    flex: 1,
+    position: 'relative', // IMPORTANTE para el overlay
+  },
   camera: {
     flex: 1,
   },
   scannerOverlay: {
-    flex: 1,
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
     backgroundColor: 'transparent',
     justifyContent: 'center',
     alignItems: 'center',
@@ -121,9 +132,12 @@ const styles = StyleSheet.create({
   scanText: {
     fontSize: 18,
     fontWeight: 'bold',
-    color: '#000000',
+    color: '#ffffff', // Cambié a blanco para mejor contraste
     textAlign: 'center',
     marginBottom: 10,
+    textShadowColor: 'rgba(0, 0, 0, 0.75)',
+    textShadowOffset: { width: 1, height: 1 },
+    textShadowRadius: 3,
   },
   instructionText: {
     fontSize: 14,
@@ -138,6 +152,7 @@ const styles = StyleSheet.create({
     bottom: 0,
     justifyContent: 'center',
     alignItems: 'center',
+    backgroundColor: 'rgba(0,0,0,0.3)', // Fondo semitransparente
   },
   scanningText: {
     color: '#ffffff',

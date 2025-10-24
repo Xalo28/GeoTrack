@@ -18,20 +18,13 @@ const ScanPhase1Screen = ({ navigation }) => {
 
   const handleBarcodeScanned = ({ type, data }) => {
     console.log('Código escaneado:', { type, data });
-    setScanResult(data);
-    setIsScanning(false);
     
-    // Mostrar resultado y navegar
-    Alert.alert(
-      'Código Escaneado',
-      `Contenido: ${data}`,
-      [
-        {
-          text: 'Continuar',
-          onPress: () => navigation.navigate('ScanPhase2', { scannedData: data })
-        }
-      ]
-    );
+    // DETENER el escaneo inmediatamente
+    setIsScanning(false);
+    setScanResult(data);
+    
+    // Navegar directamente sin Alert
+    navigation.navigate('ScanPhase2', { scannedData: data });
   };
 
   const stopScanning = () => {
