@@ -1,18 +1,11 @@
-import React, { useState, useEffect } from 'react';
+import React, { useEffect } from 'react';
 import { View, Text, StyleSheet, StatusBar, Alert } from 'react-native';
 import Header from '../components/Header';  
 import BottomBar from '../components/BottomBar';  
+import { useOrders } from '../context/OrdersContext';
 
 const HomeScreen = ({ navigation }) => {
-  const [hasOrders, setHasOrders] = useState(false);
-
-  useEffect(() => {
-    checkOrders();
-  }, []);
-
-  const checkOrders = async () => {
-    setHasOrders(true);
-  };
+  const { hasOrders } = useOrders();
 
   useEffect(() => {
     if (hasOrders) {

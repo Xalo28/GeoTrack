@@ -49,7 +49,10 @@ const Header = ({ navigation, onBackPress }) => {
 
 const styles = StyleSheet.create({
   header: {
-    paddingVertical: 30,
+    paddingVertical: 40,
+    paddingHorizontal: 40,
+    borderBottomWidth: 2,
+    borderBottomColor: '#5CE1E6',
   },
   headerTop: {
     flexDirection: 'row',

@@ -26,10 +26,10 @@ const ScanHeader = ({ navigation, phaseTitle, instruction, showInstruction = tru
 const styles = StyleSheet.create({
   header: {
     backgroundColor: '#f8f9fa',
-    paddingVertical: 30,
-    paddingHorizontal: 25,
+    paddingVertical: 40,
+    paddingHorizontal: 40,
     borderBottomWidth: 2,
-    borderBottomColor: '#000000',
+    borderBottomColor: '#5CE1E6',
   },
   headerContent: {
     flexDirection: 'row',

@@ -2,165 +2,142 @@ import React from 'react';
 import { 
   View, 
   Text, 
+  StyleSheet, 
   Modal, 
   TouchableOpacity, 
-  ScrollView, 
-  StyleSheet,
   Linking,
-  Alert 
+  ScrollView 
 } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
+import { useOrders } from '../context/OrdersContext';
 
-const OrderDetailsModal = ({ visible, order, onClose, onUpdateStatus }) => {
+const OrderDetailsModal = ({ visible, order, onClose, onMarkDelivered }) => {
+  const { markAsDelivered } = useOrders();
+
   if (!order) return null;
 
-  const getStatusColor = (status) => {
-    switch(status) {
-      case 'Entregado': return '#27ae60';
-      case 'En camino': return '#3498db';
-      case 'Pendiente': return '#e74c3c';
-      default: return '#95a5a6';
-    }
-  };
-
-  const handleCall = (phoneNumber) => {
+  const handleCall = () => {
+    const phoneNumber = order.informacionContacto.telefono.replace(/\D/g, '');
     Linking.openURL(`tel:${phoneNumber}`);
   };
 
-  const handleOpenMaps = (address) => {
-    const encodedAddress = encodeURIComponent(address);
-    Linking.openURL(`https://maps.google.com/?q=${encodedAddress}`);
+  const handleOpenMaps = () => {
+    const address = encodeURIComponent(order.informacionContacto.direccion);
+    Linking.openURL(`https://maps.google.com/?q=${address}`);
   };
 
-  const handleMarkAsDelivered = () => {
-    if (order.status === 'Entregado') {
-      Alert.alert('Información', 'Este pedido ya ha sido entregado.');
-      return;
-    }
-
-    Alert.alert(
-      'Confirmar Entrega',
-      `¿Estás seguro de que deseas marcar el pedido ${order.id} como entregado?`,
-      [
-        {
-          text: 'Cancelar',
-          style: 'cancel'
-        },
-        {
-          text: 'Sí, Entregado',
-          onPress: () => {
-            if (onUpdateStatus) {
-              onUpdateStatus(order.id, 'Entregado');
-            }
-            // NO cerrar el modal inmediatamente, dejar que se actualice
-          }
-        }
-      ]
-    );
+  const handleMarkDelivered = () => {
+    markAsDelivered(order.id);
+    onMarkDelivered?.();
+    onClose();
   };
-
-  const getButtonText = () => {
-    switch(order.status) {
-      case 'Entregado': return '✅ Entregado';
-      case 'En camino': return 'Marcar como Entregado';
-      case 'Pendiente': return 'Marcar como Entregado';
-      default: return 'Marcar como Entregado';
-    }
-  };
-
-  const isButtonDisabled = order.status === 'Entregado';
 
   return (
     <Modal
+      visible={visible}
       animationType="slide"
       transparent={true}
-      visible={visible}
       onRequestClose={onClose}
     >
-      <View style={styles.modalOverlay}>
+      <View style={styles.modalContainer}>
         <View style={styles.modalContent}>
+          {/* Header */}
           <View style={styles.modalHeader}>
             <Text style={styles.modalTitle}>Detalles del Pedido</Text>
             <TouchableOpacity onPress={onClose} style={styles.closeButton}>
-              <Ionicons name="close" size={24} color="#000" />
+              <Text style={styles.closeButtonText}>×</Text>
             </TouchableOpacity>
           </View>
 
-          <ScrollView style={styles.modalBody}>
+          <ScrollView style={styles.scrollContent}>
+            {/* Información General */}
             <View style={styles.section}>
               <Text style={styles.sectionTitle}>Información General</Text>
               <View style={styles.infoRow}>
-                <Text style={styles.infoLabel}>Número de Pedido:</Text>
-                <Text style={styles.infoValue}>{order.id}</Text>
+                <Text style={styles.infoLabel}>Informe de Pedido:</Text>
+                <Text style={styles.infoValue}>{order.numeroPedido}</Text>
               </View>
               <View style={styles.infoRow}>
                 <Text style={styles.infoLabel}>Cliente:</Text>
-                <Text style={styles.infoValue}>{order.customer}</Text>
+                <Text style={styles.infoValue}>{order.cliente}</Text>
               </View>
               <View style={styles.infoRow}>
                 <Text style={styles.infoLabel}>Estado:</Text>
-                <View style={[styles.statusBadge, { backgroundColor: getStatusColor(order.status) }]}>
-                  <Text style={styles.statusText}>{order.status}</Text>
+                <View style={[
+                  styles.statusBadge,
+                  order.estado === 'Entregado' ? styles.deliveredBadge : styles.pendingBadge
+                ]}>
+                  <Text style={styles.statusText}>{order.estado}</Text>
                 </View>
               </View>
               <View style={styles.infoRow}>
-                <Text style={styles.infoLabel}>Hora:</Text>
-                <Text style={styles.infoValue}>{order.time}</Text>
+                <Text style={styles.infoLabel}>Fecha:</Text>
+                <Text style={styles.infoValue}>
+                  {new Date(order.date).toLocaleDateString()} {new Date(order.date).toLocaleTimeString()}
+                </Text>
               </View>
             </View>
 
+            {/* Información de Contacto */}
             <View style={styles.section}>
               <Text style={styles.sectionTitle}>Información de Contacto</Text>
-              <View style={styles.contactRow}>
-                <Ionicons name="call-outline" size={20} color="#3498db" />
-                <Text style={styles.contactText}>{order.phone}</Text>
-                <TouchableOpacity 
-                  style={styles.actionButton}
-                  onPress={() => handleCall(order.phone)}
-                >
-                  <Text style={styles.actionButtonText}>Llamar</Text>
+              
+              <View style={styles.contactButtons}>
+                <TouchableOpacity style={styles.contactButton} onPress={handleCall}>
+                  <Text style={styles.contactButtonText}>📞 {order.informacionContacto.telefono}</Text>
                 </TouchableOpacity>
-              </View>
-              <View style={styles.contactRow}>
-                <Ionicons name="location-outline" size={20} color="#e74c3c" />
-                <Text style={styles.contactText} numberOfLines={2}>{order.address}</Text>
-                <TouchableOpacity 
-                  style={styles.actionButton}
-                  onPress={() => handleOpenMaps(order.address)}
-                >
-                  <Text style={styles.actionButtonText}>Mapa</Text>
+                
+                <TouchableOpacity style={styles.contactButton} onPress={handleOpenMaps}>
+                  <Text style={styles.contactButtonText}>📍 {order.informacionContacto.direccion}</Text>
                 </TouchableOpacity>
               </View>
             </View>
 
+            {/* Productos */}
             <View style={styles.section}>
               <Text style={styles.sectionTitle}>Productos</Text>
-              {order.products.map((product, index) => (
+              {order.productos.map((producto, index) => (
                 <View key={index} style={styles.productItem}>
-                  <Text style={styles.productText}>• {product}</Text>
+                  <Text style={styles.productText}>• {producto}</Text>
                 </View>
               ))}
             </View>
 
-            <View style={styles.totalSection}>
-              <Text style={styles.totalLabel}>Total:</Text>
-              <Text style={styles.totalAmount}>{order.total}</Text>
+            {/* Separador */}
+            <View style={styles.separator} />
+
+            {/* Información Adicional */}
+            <View style={styles.section}>
+              <Text style={styles.additionalInfo}>
+                <Text style={styles.bold}>Ciudad: </Text>
+                <Text>Lima</Text>
+              </Text>
+              <Text style={styles.additionalInfo}>
+                <Text style={styles.bold}>Distrito: </Text>
+                <Text>San Juan de Lurigancho</Text>
+              </Text>
+              <Text style={styles.additionalInfo}>
+                <Text style={styles.bold}>Referencia: </Text>
+                <Text>Frente al parque principal</Text>
+              </Text>
             </View>
           </ScrollView>
 
-          <View style={styles.modalFooter}>
-            <TouchableOpacity style={styles.secondaryButton} onPress={onClose}>
-              <Text style={styles.secondaryButtonText}>Cerrar</Text>
-            </TouchableOpacity>
+          {/* Botones de Acción */}
+          <View style={styles.actionButtons}>
+            {order.estado !== 'Entregado' && (
+              <TouchableOpacity 
+                style={styles.deliverButton}
+                onPress={handleMarkDelivered}
+              >
+                <Text style={styles.deliverButtonText}>Marcar como Entregado</Text>
+              </TouchableOpacity>
+            )}
+            
             <TouchableOpacity 
-              style={[
-                styles.primaryButton,
-                isButtonDisabled && styles.primaryButtonDisabled
-              ]}
-              onPress={handleMarkAsDelivered}
-              disabled={isButtonDisabled}
+              style={styles.closeActionButton}
+              onPress={onClose}
             >
-              <Text style={styles.primaryButtonText}>{getButtonText()}</Text>
+              <Text style={styles.closeActionButtonText}>Cerrar</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -170,16 +147,18 @@ const OrderDetailsModal = ({ visible, order, onClose, onUpdateStatus }) => {
 };
 
 const styles = StyleSheet.create({
-  modalOverlay: {
+  modalContainer: {
     flex: 1,
     backgroundColor: 'rgba(0, 0, 0, 0.5)',
-    justifyContent: 'flex-end',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   modalContent: {
     backgroundColor: 'white',
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
+    borderRadius: 15,
+    width: '90%',
     maxHeight: '80%',
+    overflow: 'hidden',
   },
   modalHeader: {
     flexDirection: 'row',
@@ -192,22 +171,26 @@ const styles = StyleSheet.create({
   modalTitle: {
     fontSize: 20,
     fontWeight: 'bold',
-    color: '#000',
+    color: '#000000',
   },
   closeButton: {
-    padding: 4,
+    padding: 5,
   },
-  modalBody: {
+  closeButtonText: {
+    fontSize: 24,
+    color: '#6c757d',
+  },
+  scrollContent: {
     padding: 20,
   },
   section: {
     marginBottom: 20,
   },
   sectionTitle: {
-    fontSize: 16,
+    fontSize: 18,
     fontWeight: 'bold',
-    color: '#000',
-    marginBottom: 12,
+    color: '#000000',
+    marginBottom: 10,
   },
   infoRow: {
     flexDirection: 'row',
@@ -217,106 +200,89 @@ const styles = StyleSheet.create({
   },
   infoLabel: {
     fontSize: 14,
-    color: '#666',
-    fontWeight: '500',
+    color: '#6c757d',
   },
   infoValue: {
     fontSize: 14,
-    color: '#000',
-    fontWeight: '500',
+    fontWeight: 'bold',
+    color: '#000000',
   },
   statusBadge: {
     paddingHorizontal: 12,
-    paddingVertical: 6,
+    paddingVertical: 4,
     borderRadius: 12,
   },
+  pendingBadge: {
+    backgroundColor: '#fff3cd',
+  },
+  deliveredBadge: {
+    backgroundColor: '#d4edda',
+  },
   statusText: {
-    color: '#ffffff',
     fontSize: 12,
     fontWeight: 'bold',
+    color: '#000000',
   },
-  contactRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 12,
-    padding: 12,
+  contactButtons: {
+    gap: 10,
+  },
+  contactButton: {
     backgroundColor: '#f8f9fa',
-    borderRadius: 8,
+    padding: 15,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: '#e0e0e0',
   },
-  contactText: {
-    flex: 1,
-    marginLeft: 10,
+  contactButtonText: {
     fontSize: 14,
-    color: '#000',
-  },
-  actionButton: {
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    backgroundColor: '#3498db',
-    borderRadius: 6,
-    marginLeft: 10,
-  },
-  actionButtonText: {
-    color: '#fff',
-    fontSize: 12,
     fontWeight: 'bold',
+    color: '#007bff',
   },
   productItem: {
-    paddingVertical: 4,
+    marginBottom: 5,
   },
   productText: {
     fontSize: 14,
-    color: '#000',
+    color: '#000000',
   },
-  totalSection: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingTop: 15,
-    borderTopWidth: 1,
-    borderTopColor: '#e0e0e0',
+  separator: {
+    height: 1,
+    backgroundColor: '#e0e0e0',
+    marginVertical: 15,
   },
-  totalLabel: {
-    fontSize: 18,
+  additionalInfo: {
+    fontSize: 14,
+    color: '#000000',
+    marginBottom: 5,
+  },
+  bold: {
     fontWeight: 'bold',
-    color: '#000',
   },
-  totalAmount: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#27ae60',
-  },
-  modalFooter: {
-    flexDirection: 'row',
+  actionButtons: {
     padding: 20,
     borderTopWidth: 1,
     borderTopColor: '#e0e0e0',
     gap: 10,
   },
-  secondaryButton: {
-    flex: 1,
+  deliverButton: {
+    backgroundColor: '#28a745',
     padding: 15,
-    backgroundColor: '#e0e0e0',
     borderRadius: 10,
     alignItems: 'center',
   },
-  secondaryButtonText: {
-    color: '#000',
+  deliverButtonText: {
+    color: 'white',
     fontSize: 16,
-    fontWeight: '500',
+    fontWeight: 'bold',
   },
-  primaryButton: {
-    flex: 2,
+  closeActionButton: {
+    backgroundColor: '#6c757d',
     padding: 15,
-    backgroundColor: '#27ae60',
     borderRadius: 10,
     alignItems: 'center',
   },
-  primaryButtonDisabled: {
-    backgroundColor: '#bdc3c7',
-  },
-  primaryButtonText: {
-    color: '#fff',
+  closeActionButtonText: {
+    color: 'white',
     fontSize: 16,
     fontWeight: 'bold',
   },

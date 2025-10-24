@@ -1,13 +1,39 @@
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
+import { useOrders } from '../context/OrdersContext';
 
-// Componentes reutilizados
 import ScanHeader from '../components/ScanHeader';
 import ScanControls from '../components/ScanControls';
 import SuccessIcon from '../components/SuccessIcon';
 
-const SuccessScreen = ({ navigation }) => {
+const SuccessScreen = ({ navigation, route }) => {
+  const { addOrder } = useOrders();
+  
+  const scannedCode = route.params?.scannedCode || 'PED-' + Math.floor(100000 + Math.random() * 900000);
+
+  const orderData = {
+    cliente: "Maria García",
+    direccion: "Av. Los Páñones 123, San Juan de Lurigancho",
+    celular: "+51 987 654 321",
+    codigo: scannedCode,
+    numeroPedido: 'FEO-' + Math.floor(100000 + Math.random() * 900000),
+    productos: [
+      'Logros Del 195 13',
+      'Mesas Instituciones', 
+      'Funda protectora'
+    ],
+    informacionContacto: {
+      telefono: '+51 987 654 321',
+      direccion: 'Av. Los Páñones 123, San Juan de Lurigancho'
+    }
+  };
+
+  const handleAccept = () => {
+    addOrder(orderData);
+    navigation.navigate('Pedidos');
+  };
+
   return (
     <View style={styles.container}>
       <StatusBar style="dark" />
@@ -27,16 +53,16 @@ const SuccessScreen = ({ navigation }) => {
         <View style={styles.orderInfo}>
           <Text style={styles.orderText}>Pedido registrado correctamente</Text>
           <View style={styles.orderDetails}>
-            <Text style={styles.orderCode}>Cliente: Juan Pérez</Text>
-            <Text style={styles.orderCode}>Direccion: Los Robles 123 - Jesus Maria</Text>
-            <Text style={styles.orderCode}>Celular: 987654321</Text>
-            <Text style={styles.orderCode}>Código: PED-123456</Text>
+            <Text style={styles.orderCode}>Cliente: {orderData.cliente}</Text>
+            <Text style={styles.orderCode}>Dirección: {orderData.direccion}</Text>
+            <Text style={styles.orderCode}>Celular: {orderData.celular}</Text>
+            <Text style={styles.orderCode}>Código: {orderData.numeroPedido}</Text>
           </View>
         </View>
 
         <ScanControls 
           isScanning={false}
-          onStartScanning={() => navigation.navigate('Home')}
+          onStartScanning={handleAccept}
           buttonText="ACEPTAR"
           buttonStyle={styles.acceptButton}
           textStyle={styles.acceptButtonText}
@@ -45,7 +71,6 @@ const SuccessScreen = ({ navigation }) => {
     </View>
   );
 };
-
 const styles = StyleSheet.create({
   container: {
     flex: 1,
