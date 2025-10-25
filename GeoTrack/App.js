@@ -9,6 +9,8 @@ import PedidosScreen from './screens/PedidosScreen';
 import ScanPhase1Screen from './screens/ScanPhase1Screen';
 import ScanPhase2Screen from './screens/ScanPhase2Screen';
 import SuccessScreen from './screens/SuccessScreen';
+import ManualOrderScreen from './screens/ManualOrderScreen';
+import OrderSuccessScreen from './screens/OrderSuccessScreen';
 
 const Stack = createStackNavigator();
 
@@ -28,6 +30,8 @@ export default function App() {
           <Stack.Screen name="ScanPhase1" component={ScanPhase1Screen} />
           <Stack.Screen name="ScanPhase2" component={ScanPhase2Screen} />
           <Stack.Screen name="Success" component={SuccessScreen} />
+          <Stack.Screen name="ManualOrder" component={ManualOrderScreen} />
+          <Stack.Screen name="OrderSuccess" component={OrderSuccessScreen} />
         </Stack.Navigator>
       </NavigationContainer>
     </OrdersProvider>
