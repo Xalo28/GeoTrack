@@ -28,7 +28,7 @@ const HomeScreen = ({ navigation }) => {
   };
 
   const handleScanPress = () => navigation.navigate('ScanPhase1');
-  const handleAddPress = () => console.log('Add new route pressed');
+  const handleAddPress = () => navigation.navigate('ManualOrder');
   const handleMenuPress = () => console.log('Menu pressed');
 
   return (
