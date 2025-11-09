@@ -11,16 +11,13 @@ export const OrdersProvider = ({ children }) => {
       ...newOrder,
       id: Date.now().toString(),
       date: new Date().toISOString(),
-      estado: 'Pendiente', // Estado inicial
-      numeroPedido: 'FEO-' + Math.floor(100000 + Math.random() * 900000),
-      productos: [
-        'Comida para perros',
-        'Juguete Peluche Pingüino Little',
-        'Funda protectora'
+      estado: 'Pendiente',
+      productos: newOrder.productos || [
+        'Producto por definir'
       ],
       informacionContacto: {
-        telefono: '+51 987 654 321',
-        direccion: 'Av. Los Páñones 123, San Juan de Lurigancho'
+        telefono: newOrder.informacionContacto.telefono,
+        direccion: `${newOrder.informacionContacto.direccion}, ${newOrder.distrito}`
       }
     };
     

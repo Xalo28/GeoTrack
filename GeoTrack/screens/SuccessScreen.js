@@ -10,23 +10,27 @@ import SuccessIcon from '../components/SuccessIcon';
 const SuccessScreen = ({ navigation, route }) => {
   const { addOrder } = useOrders();
   
-  const scannedCode = route.params?.scannedCode || 'PED-' + Math.floor(100000 + Math.random() * 900000);
+  // Manejo seguro de route.params
+  const scannedCode = route?.params?.scannedCode || 'PED-' + Math.floor(100000 + Math.random() * 900000);
 
+  // Estructura de datos que coincide con lo que espera RecentOrders
   const orderData = {
+    id: Date.now().toString(), // ID único
     cliente: "Maria García",
-    direccion: "Av. Los Páñones 123, San Juan de Lurigancho",
+    numeroPedido: scannedCode, // Usado en: Código: {order.numeroPedido}
+    estado: 'Pendiente', // Usado en el badge de estado
+    informacionContacto: {
+      direccion: 'Av. Los Páñones 123, San Juan de Lurigancho', // Usado en: {order.informacionContacto.direccion}
+      telefono: '+51 987 654 321'
+    },
+    // Propiedades adicionales que podrían ser usadas en el modal de detalles
     celular: "+51 987 654 321",
     codigo: scannedCode,
-    numeroPedido: 'FEO-' + Math.floor(100000 + Math.random() * 900000),
     productos: [
       'Logros Del 195 13',
       'Mesas Instituciones', 
       'Funda protectora'
-    ],
-    informacionContacto: {
-      telefono: '+51 987 654 321',
-      direccion: 'Av. Los Páñones 123, San Juan de Lurigancho'
-    }
+    ]
   };
 
   const handleAccept = () => {
@@ -54,7 +58,7 @@ const SuccessScreen = ({ navigation, route }) => {
           <Text style={styles.orderText}>Pedido registrado correctamente</Text>
           <View style={styles.orderDetails}>
             <Text style={styles.orderCode}>Cliente: {orderData.cliente}</Text>
-            <Text style={styles.orderCode}>Dirección: {orderData.direccion}</Text>
+            <Text style={styles.orderCode}>Dirección: {orderData.informacionContacto.direccion}</Text>
             <Text style={styles.orderCode}>Celular: {orderData.celular}</Text>
             <Text style={styles.orderCode}>Código: {orderData.numeroPedido}</Text>
           </View>
@@ -71,6 +75,7 @@ const SuccessScreen = ({ navigation, route }) => {
     </View>
   );
 };
+
 const styles = StyleSheet.create({
   container: {
     flex: 1,

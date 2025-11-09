@@ -12,8 +12,11 @@ import Header from '../components/Header';
 import FormInputWithIcon from '../components/FormInputWithIcon';
 import DistrictSelector from '../components/DistrictSelector';
 import BottomBar from '../components/BottomBar';
+import { useOrders } from '../context/OrdersContext';
 
 const ManualOrderScreen = ({ navigation }) => {
+  const { addOrder } = useOrders();
+  
   const [formData, setFormData] = useState({
     orderId: '',
     clientName: '',
@@ -47,45 +50,31 @@ const ManualOrderScreen = ({ navigation }) => {
   };
 
   const validateForm = () => {
-    const newErrors = {};
-    
-    // Validar ID del Pedido
-    if (!formData.orderId.trim()) {
-      newErrors.orderId = 'El ID del pedido es requerido';
-    } else if (!/^[A-Z0-9]+$/.test(formData.orderId.trim())) {
-      newErrors.orderId = 'El ID debe contener solo letras y números';
-    }
-    
-    // Validar Nombre del Cliente
+    let isValid = true;
+    let newErrors = {};
+
     if (!formData.clientName.trim()) {
-      newErrors.clientName = 'El nombre del cliente es requerido';
-    } else if (formData.clientName.trim().length < 2) {
-      newErrors.clientName = 'El nombre debe tener al menos 2 caracteres';
-    } else if (!/^[A-Za-zÁÉÍÓÚáéíóúñÑ\s]+$/.test(formData.clientName.trim())) {
-      newErrors.clientName = 'El nombre no puede contener números ni caracteres especiales';
+      newErrors.clientName = 'El nombre es requerido';
+      isValid = false;
     }
-    
-    // Validar Teléfono
+
     if (!formData.phone.trim()) {
       newErrors.phone = 'El teléfono es requerido';
-    } else if (!/^[0-9]{9}$/.test(formData.phone.trim())) {
-      newErrors.phone = 'El teléfono debe tener exactamente 9 dígitos';
+      isValid = false;
     }
-    
-    // Validar Distrito
-    if (!formData.district) {
-      newErrors.district = 'Debe seleccionar un distrito';
+
+    if (!formData.district.trim()) {
+      newErrors.district = 'El distrito es requerido';
+      isValid = false;
     }
-    
-    // Validar Dirección
+
     if (!formData.address.trim()) {
       newErrors.address = 'La dirección es requerida';
-    } else if (formData.address.trim().length < 3) {
-      newErrors.address = 'La dirección debe tener al menos 3 caracteres';
+      isValid = false;
     }
-    
+
     setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
+    return isValid;
   };
 
   const handleCancel = () => {
@@ -103,13 +92,40 @@ const ManualOrderScreen = ({ navigation }) => {
   };
 
   const handleAccept = () => {
+    // Agregamos console.log para debuggear
+    console.log('Button pressed');
+    console.log('Form data:', formData);
+
     if (validateForm()) {
-      // Navegar a la pantalla de confirmación
-      navigation.navigate('OrderSuccess', { orderData: formData });
+      console.log('Form is valid');
+      
+      const newOrder = {
+        cliente: formData.clientName.trim(),
+        numeroPedido: Date.now().toString(),
+        informacionContacto: {
+          telefono: formData.phone.trim(),
+          direccion: formData.address.trim()
+        },
+        distrito: formData.district.trim()
+      };
+
+      try {
+        addOrder(newOrder);
+        console.log('Order added successfully');
+        
+        navigation.navigate('Pedidos');
+      } catch (error) {
+        console.error('Error adding order:', error);
+        Alert.alert(
+          "Error",
+          "No se pudo registrar el pedido. Por favor intente nuevamente."
+        );
+      }
     } else {
+      console.log('Form validation failed', errors);
       Alert.alert(
         "Formulario incompleto",
-        "Por favor corrige los errores antes de continuar."
+        "Por favor complete todos los campos requeridos."
       );
     }
   };
@@ -211,8 +227,9 @@ const ManualOrderScreen = ({ navigation }) => {
           <TouchableOpacity 
             style={styles.acceptButton} 
             onPress={handleAccept}
+            activeOpacity={0.7}
           >
-            <Text style={styles.acceptButtonText}>ACEPTAR</Text>
+            <Text style={styles.acceptButtonText}>Aceptar</Text>
           </TouchableOpacity>
         </View>
       </ScrollView>

@@ -12,17 +12,28 @@ const StatsCard = () => {
 
   return (
     <View style={styles.container}>
-      <View style={styles.statItem}>
-        <Text style={styles.statNumber}>{totalPedidos}</Text>
-        <Text style={styles.statLabel}>Pedidos</Text>
+      {/* Total */}
+      <View style={styles.statColumn}>
+        <Text style={styles.statLabel}>Total</Text>
+        <View style={[styles.circle, styles.totalCircle]}>
+          <Text style={styles.statNumber}>{totalPedidos}</Text>
+        </View>
       </View>
-      <View style={styles.statItem}>
-        <Text style={styles.statNumber}>{entregados}</Text>
-        <Text style={styles.statLabel}>Entregados</Text>
+
+      {/* Pendientes */}
+      <View style={styles.statColumn}>
+        <Text style={styles.statLabel}>Pendiente</Text>
+        <View style={[styles.circle, styles.pendingCircle]}>
+          <Text style={styles.statNumber}>{pendientes}</Text>
+        </View>
       </View>
-      <View style={styles.statItem}>
-        <Text style={styles.statNumber}>{pendientes}</Text>
-        <Text style={styles.statLabel}>Pendientes</Text>
+
+      {/* Entregados */}
+      <View style={styles.statColumn}>
+        <Text style={styles.statLabel}>Entregado</Text>
+        <View style={[styles.circle, styles.deliveredCircle]}>
+          <Text style={styles.statNumber}>{entregados}</Text>
+        </View>
       </View>
     </View>
   );
@@ -32,23 +43,45 @@ const styles = StyleSheet.create({
   container: {
     flexDirection: 'row',
     justifyContent: 'space-around',
+    alignItems: 'center',
     backgroundColor: '#f8f9fa',
     padding: 20,
     borderRadius: 15,
     marginBottom: 20,
   },
-  statItem: {
+  statColumn: {
     alignItems: 'center',
-  },
-  statNumber: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: '#000000',
   },
   statLabel: {
     fontSize: 14,
     color: '#6c757d',
-    marginTop: 5,
+    fontWeight: '600',
+    marginBottom: 8,
+  },
+  circle: {
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 2,
+  },
+  totalCircle: {
+    backgroundColor: '#ffffff',
+    borderColor: '#000000',
+  },
+  pendingCircle: {
+    backgroundColor: '#fff3cd',
+    borderColor: '#ffc107',
+  },
+  deliveredCircle: {
+    backgroundColor: '#d4edda',
+    borderColor: '#28a745',
+  },
+  statNumber: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: '#000000',
   },
 });
 

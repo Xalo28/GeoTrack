@@ -4,7 +4,6 @@ import { Ionicons } from '@expo/vector-icons';
 
 const DISTRICTS = [
   'SAN JUAN DE LURIGANCHO',
-  'TASAYCO',
   'SANTIAGO DE SURCO',
   'MIRAFLORES',
   'SAN ISIDRO',

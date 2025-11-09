@@ -115,10 +115,7 @@ const OrderDetailsModal = ({ visible, order, onClose, onMarkDelivered }) => {
                 <Text style={styles.bold}>Distrito: </Text>
                 <Text>San Juan de Lurigancho</Text>
               </Text>
-              <Text style={styles.additionalInfo}>
-                <Text style={styles.bold}>Referencia: </Text>
-                <Text>Frente al parque principal</Text>
-              </Text>
+              
             </View>
           </ScrollView>
 

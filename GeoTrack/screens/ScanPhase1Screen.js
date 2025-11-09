@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { View, StyleSheet, Alert } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 
+
 // Componentes 
 import ScanHeader from '../components/ScanHeader';
 import ScannerArea from '../components/ScannerArea';
