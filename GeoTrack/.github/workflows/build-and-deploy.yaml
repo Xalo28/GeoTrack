@@ -1,85 +1,107 @@
 name: Build and Deploy in EAS - Unit Tests
 
-
 on:
   push:
     branches:
       - feature/unit-test
 
 jobs:
+  # Job 1: Realiza Checkout, Instala, Prueba, Construye y Crea el Artefacto
   build-and-archive:
     runs-on: ubuntu-latest
     env:
+      # Aumentar la memoria para Node.js, útil en builds grandes
       NODE_OPTIONS: --max-old-space-size=4096
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v3
+      - name: ⬇️ Checkout del Repositorio
+        # Es mejor usar la versión 4
+        uses: actions/checkout@v4
     
-      - name: Set up Node.js
-        uses: actions/setup-node@v3
+      - name: 🛠️ Set up Node.js
+        uses: actions/setup-node@v4
         with:
-            node-version: '20'
-            cache: npm
+          node-version: '20'
+          cache: npm
 
-      - name: Install dependencies
+      # **************** INICIO: Sección de Instalación ****************
+      # El error ENOENT generalmente se debe a que package.json no está en la raíz.
+      # Asumo que NO tienes subcarpetas. Si las tienes, agrega 'working-directory: [tu-subcarpeta]'
+      - name: 📦 Instalar dependencias principales (npm install)
         run: npm install
 
-      - name: Install test dependencies
+      # Es más eficiente instalar todas las dependencias juntas, pero si lo separas
+      # para el caché o claridad, puedes mantenerlo así, aunque es un poco redundante.
+      - name: 🧪 Instalar dependencias de pruebas
         run: npm install -D @testing-library/react-native @testing-library/jest-native react-test-renderer@19.1.0 --legacy-peer-deps
+      # **************** FIN: Sección de Instalación ****************
 
-      - name: Run unit tests
+      - name: 🏃 Run unit tests
         run: npm test
 
-      - name: Build project
+      - name: 🏗️ Build project
         run: npm run build
 
-      - name: Generate artifacts
+      - name: 📤 Generar y subir artefactos
         uses: actions/upload-artifact@v4
         with:
-            name: geotrack-${{ github.sha }}
-            path: dist/
+          name: geotrack-${{ github.sha }}
+          path: dist/ # Asegúrate de que 'dist/' sea el directorio correcto de la construcción
+          retention-days: 1 # Opcional: define cuánto tiempo se guarda el artefacto
 
+  # Job 2: Descarga el artefacto y Publica a EAS
   publish-to-eas:
     needs: build-and-archive
+    # ¡ADVERTENCIA! Nunca pongas tokens de manera literal en el código.
+    # Usa Secretos de GitHub Actions (ej: ${{ secrets.EAS_TOKEN }})
     env:
-        EAS_TOKEN: lkjQM86ufwpkKLq-GE6R2iYv48WCaMgLtUsmGZM0
+      EAS_TOKEN: ${{ secrets.EAS_TOKEN }} # Corregido a una variable SECRETA
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v3
+      # El checkout es necesario para el contexto y el package.json
+      - name: ⬇️ Checkout del Repositorio
+        uses: actions/checkout@v4
     
-      - name: Set up Node.js
-        uses: actions/setup-node@v3
+      - name: 🛠️ Set up Node.js
+        uses: actions/setup-node@v4
         with:
-            node-version: '20'
-            cache: npm
+          node-version: '20'
+          cache: npm
 
-      - name: Install dependencies
-        run: cd GeoTrack npm install
-
-      - name: Download artifacts
+      - name: 📦 Instalar dependencias para EAS
+        # ⚠️ CORRECCIÓN CLAVE: El comando 'cd GeoTrack npm install' está mal escrito.
+        # Asumiendo que GeoTrack es el subdirectorio, la forma correcta es:
+        # run: cd GeoTrack && npm install
+        # PERO: Si GeoTrack es solo el nombre de tu repositorio (y los archivos están en la raíz),
+        # solo necesitas 'npm install'.
+        # Optimizaremos usando el parámetro 'working-directory' si es necesario.
+        # ASUMIENDO que no hay subdirectorio:
+        run: npm install
+        
+      - name: 📥 Descargar artefactos
         uses: actions/download-artifact@v4
         with:
-            name: geotrack-${{ github.sha }}
-            path: dist/
-      
-      - name: Authenticate with EAS
+          name: geotrack-${{ github.sha }}
+          path: dist/
+          
+      - name: 🔑 Authenticate with EAS
         uses: expo/expo-github-action@v8
         with:
-            expo-version: latest
-            eas-version: latest
-            token: ${{ env.EAS_TOKEN }}
-            eas-cache: true
-            expo-cache: true
+          expo-version: latest
+          eas-version: latest
+          token: ${{ env.EAS_TOKEN }}
+          eas-cache: true
+          expo-cache: true
 
-      - name: Publish QR to EAS
+      - name: 🌐 Publish QR to EAS
         id: publish
         run: eas update --auto --non-interactive
 
-      - name: Notify to any service that support APIs
+      - name: 🔔 Notify a Webhook
+        # Nota: El URL 'webhook.site' puede cambiar o expirar. Es solo para test.
         uses: muhfaris/request-action@v0.1.2
         with:
-            url: https://webhook.site/c32e9df6-a803-413d-8613-0ff24a9042b8
-            method: 'POST'
-            headers: '{"Content-Type":"application/json"}'
-            body: '{"status":"success","branch":"feature/unit-test","environment":"development","url":"https://qr"}'
+          url: https://webhook.site/c32e9df6-a803-413d-8613-0ff24a9042b8
+          method: 'POST'
+          headers: '{"Content-Type":"application/json"}'
+          # Usar variables de salida del paso 'publish' es mejor práctica
+          body: '{"status":"success","branch":"feature/unit-test","environment":"development","update_url":"${{ steps.publish.outputs.update-url }}"}'
