@@ -27,15 +27,15 @@ jobs:
           find . -maxdepth 3 -type f -name package.json -print || true
 
       - name: 📦 Instalar dependencias
-        working-directory: ./GeoTrack
+        working-directory: ../GeoTrack
         run: npm install
 
       - name: 🧪 Ejecutar tests
-        working-directory: ./GeoTrack
+        working-directory: ../GeoTrack
         run: npm run test
 
       - name: 🏗️ Build del proyecto
-        working-directory: ./GeoTrack
+        working-directory: ../GeoTrack
         run: npm run build
 
       - name: 📤 Generar y subir artefactos
@@ -62,7 +62,7 @@ jobs:
           cache: npm
 
       - name: 📦 Instalar dependencias (para EAS)
-        working-directory: ./GeoTrack
+        working-directory: ../GeoTrack
         run: npm install
 
       - name: 📥 Descargar artefactos
@@ -79,11 +79,11 @@ jobs:
           token: ${{ env.EAS_TOKEN }}
           eas-cache: true
           expo-cache: true
-          working-directory: ./GeoTrack
+          working-directory: ../GeoTrack
 
       - name: 🌐 Publish QR to EAS
         id: publish
-        working-directory: ./GeoTrack
+        working-directory: .../GeoTrack
         run: eas update --auto --non-interactive
 
       - name: 🔔 Notify a webhook
