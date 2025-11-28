@@ -26,7 +26,6 @@ jobs:
           ls -la
           echo "=== Buscando package.json ==="
           find . -name "package.json" -type f | head -10
-
       - name: 📦 Instalar dependencias
         working-directory: ./GeoTrack
         run: npm install
@@ -65,8 +64,8 @@ jobs:
         working-directory: ./GeoTrack
         run: |
           npm install
-          # Instalar EAS CLI correctamente
-          npm install -g @expo/cli eas-cli
+          # Instalar solo EAS CLI (ya incluye lo necesario)
+          npm install -g eas-cli
 
       - name: 📥 Descargar artefactos
         uses: actions/download-artifact@v4
@@ -80,8 +79,6 @@ jobs:
           echo "Directorio actual: $(pwd)"
           echo "=== Verificando EAS CLI ==="
           eas --version
-          echo "=== Verificando Expo CLI ==="
-          expo --version
           echo "=== Verificando configuración del proyecto ==="
           ls -la
           echo "=== Archivos de configuración ==="
@@ -91,9 +88,8 @@ jobs:
       - name: 🔐 Autenticar con EAS usando variable de entorno
         working-directory: ./GeoTrack
         run: |
-          # Usar EXPO_TOKEN en lugar de --token flag
           echo "=== Autenticando con EAS ==="
-          EXPO_TOKEN=${{ env.EXPO_TOKEN }} npx eas whoami
+          eas whoami
 
       - name: 🌐 Publicar en EAS
         id: publish
