@@ -52,4 +52,5 @@
       "^react-native-worklets-core$": "react-native-worklets-core/jest"
     }
   }
+  
 }
