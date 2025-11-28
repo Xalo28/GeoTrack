@@ -48,8 +48,6 @@ jobs:
   publish-to-eas:
     needs: build-and-archive
     runs-on: ubuntu-latest
-    env:
-      EXPO_TOKEN: ${{ secrets.EAS_TOKEN }}
     steps:
       - name: ⬇️ Checkout del repositorio
         uses: actions/checkout@v4
@@ -87,6 +85,8 @@ jobs:
 
       - name: 🔐 Autenticar con EAS usando variable de entorno
         working-directory: ./GeoTrack
+        env:
+          EXPO_TOKEN: ${{ secrets.EAS_TOKEN }}
         run: |
           echo "=== Autenticando con EAS ==="
           eas whoami
