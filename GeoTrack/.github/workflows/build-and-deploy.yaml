@@ -55,8 +55,7 @@ jobs:
             cache: npm
 
       - name: Install dependencies
-        run: npm install
-        working-directory: ./GeoTrack # Cambia 'frontend' por el nombre real de tu subdirectorio
+        run: cd GeoTrack npm install
 
       - name: Download artifacts
         uses: actions/download-artifact@v4
