@@ -10,11 +10,9 @@ jobs:
   build-and-archive:
     runs-on: ubuntu-latest
     env:
-      # Aumentar la memoria para Node.js, útil en builds grandes
       NODE_OPTIONS: --max-old-space-size=4096
     steps:
       - name: ⬇️ Checkout del Repositorio
-        # Es mejor usar la versión 4
         uses: actions/checkout@v4
     
       - name: 🛠️ Set up Node.js
@@ -23,41 +21,36 @@ jobs:
           node-version: '20'
           cache: npm
 
-      # **************** INICIO: Sección de Instalación ****************
-      # El error ENOENT generalmente se debe a que package.json no está en la raíz.
-      # Asumo que NO tienes subcarpetas. Si las tienes, agrega 'working-directory: [tu-subcarpeta]'
-      - name: 📦 Instalar dependencias principales (npm install)
+      - name: 📦 Instalar dependencias principales
         run: npm install
+        working-directory: ./GeoTrack # <--- ¡CORRECCIÓN CLAVE!
 
-      # Es más eficiente instalar todas las dependencias juntas, pero si lo separas
-      # para el caché o claridad, puedes mantenerlo así, aunque es un poco redundante.
       - name: 🧪 Instalar dependencias de pruebas
         run: npm install -D @testing-library/react-native @testing-library/jest-native react-test-renderer@19.1.0 --legacy-peer-deps
-      # **************** FIN: Sección de Instalación ****************
+        working-directory: ./GeoTrack # <--- ¡CORRECCIÓN CLAVE!
 
       - name: 🏃 Run unit tests
         run: npm test
+        working-directory: ./GeoTrack # <--- ¡CORRECCIÓN CLAVE!
 
       - name: 🏗️ Build project
         run: npm run build
+        working-directory: ./GeoTrack # <--- ¡CORRECCIÓN CLAVE!
 
       - name: 📤 Generar y subir artefactos
         uses: actions/upload-artifact@v4
         with:
           name: geotrack-${{ github.sha }}
-          path: dist/ # Asegúrate de que 'dist/' sea el directorio correcto de la construcción
-          retention-days: 1 # Opcional: define cuánto tiempo se guarda el artefacto
+          path: GeoTrack/dist/ # Ajusta la ruta para incluir el subdirectorio GeoTrack
+          retention-days: 1
 
   # Job 2: Descarga el artefacto y Publica a EAS
   publish-to-eas:
     needs: build-and-archive
-    # ¡ADVERTENCIA! Nunca pongas tokens de manera literal en el código.
-    # Usa Secretos de GitHub Actions (ej: ${{ secrets.EAS_TOKEN }})
     env:
-      EAS_TOKEN: ${{ secrets.EAS_TOKEN }} # Corregido a una variable SECRETA
+      EAS_TOKEN: ${{ secrets.EAS_TOKEN }} # ¡USAR SECRETO!
     runs-on: ubuntu-latest
     steps:
-      # El checkout es necesario para el contexto y el package.json
       - name: ⬇️ Checkout del Repositorio
         uses: actions/checkout@v4
     
@@ -68,15 +61,9 @@ jobs:
           cache: npm
 
       - name: 📦 Instalar dependencias para EAS
-        # ⚠️ CORRECCIÓN CLAVE: El comando 'cd GeoTrack npm install' está mal escrito.
-        # Asumiendo que GeoTrack es el subdirectorio, la forma correcta es:
-        # run: cd GeoTrack && npm install
-        # PERO: Si GeoTrack es solo el nombre de tu repositorio (y los archivos están en la raíz),
-        # solo necesitas 'npm install'.
-        # Optimizaremos usando el parámetro 'working-directory' si es necesario.
-        # ASUMIENDO que no hay subdirectorio:
         run: npm install
-        
+        working-directory: ./GeoTrack # <--- ¡CORRECCIÓN CLAVE!
+
       - name: 📥 Descargar artefactos
         uses: actions/download-artifact@v4
         with:
@@ -91,17 +78,17 @@ jobs:
           token: ${{ env.EAS_TOKEN }}
           eas-cache: true
           expo-cache: true
+          working-directory: ./GeoTrack # <--- ¡CORRECCIÓN CLAVE!
 
       - name: 🌐 Publish QR to EAS
         id: publish
         run: eas update --auto --non-interactive
+        working-directory: ./GeoTrack # <--- ¡CORRECCIÓN CLAVE!
 
       - name: 🔔 Notify a Webhook
-        # Nota: El URL 'webhook.site' puede cambiar o expirar. Es solo para test.
         uses: muhfaris/request-action@v0.1.2
         with:
           url: https://webhook.site/c32e9df6-a803-413d-8613-0ff24a9042b8
           method: 'POST'
           headers: '{"Content-Type":"application/json"}'
-          # Usar variables de salida del paso 'publish' es mejor práctica
           body: '{"status":"success","branch":"feature/unit-test","environment":"development","update_url":"${{ steps.publish.outputs.update-url }}"}'
