@@ -11,70 +11,67 @@ jobs:
     env:
       NODE_OPTIONS: --max-old-space-size=4096
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v3
-    
-      - name: 🔍 DEBUG - Verificar estructura del repositorio
-        run: |
-          echo "=== Estructura completa del repositorio ==="
-          find . -name "package.json" -type f
-          echo "=== Contenido del directorio raíz ==="
-          ls -la
-          echo "=== Contenido de GeoTrack/ si existe ==="
-          ls -la GeoTrack/ || echo "No existe carpeta GeoTrack"
-          echo "=== Contenido de GeoTrack/GeoTrack/ si existe ==="
-          ls -la GeoTrack/GeoTrack/ || echo "No existe carpeta GeoTrack/GeoTrack"
+      - name: ⬇️ Checkout del repositorio
+        uses: actions/checkout@v4
 
-      - name: Set up Node.js
-        uses: actions/setup-node@v3
+      - name: 🛠️ Set up Node.js
+        uses: actions/setup-node@v4
         with:
           node-version: '20'
           cache: npm
 
-      - name: Install dependencies
+      - name: 🔍 Comprobar estructura (opcional, puede quitarse)
+        run: |
+          echo "PWD: $(pwd)"
+          ls -la
+          find . -maxdepth 3 -type f -name package.json -print || true
+
+      - name: 📦 Instalar dependencias
+        working-directory: ./GeoTrack
         run: npm install
-        working-directory: ./GeoTrack/GeoTrack
 
-      - name: Build project
-        run: npm run build
-        working-directory: ./GeoTrack/GeoTrack
-
-      - name: Unit tests
+      - name: 🧪 Ejecutar tests
+        working-directory: ./GeoTrack
         run: npm run test
-        working-directory: ./GeoTrack/GeoTrack
 
-      - name: Generate artifacts
+      - name: 🏗️ Build del proyecto
+        working-directory: ./GeoTrack
+        run: npm run build
+
+      - name: 📤 Generar y subir artefactos
         uses: actions/upload-artifact@v4
         with:
           name: geotrack-${{ github.sha }}
-          path: GeoTrack/GeoTrack/dist/
+          path: GeoTrack/dist/
+          retention-days: 1
 
   publish-to-eas:
     needs: build-and-archive
-    env:
-      EAS_TOKEN: ${{ secrets.EAS_TOKEN }}  # ⚠️ USA EL SECRETO, NO EL TOKEN DIRECTO
     runs-on: ubuntu-latest
+    env:
+      # NO poner tokens en texto plano: guarda EAS_TOKEN en Settings -> Secrets -> Actions
+      EAS_TOKEN: ${{ secrets.EAS_TOKEN }}
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v3
-    
-      - name: Set up Node.js
-        uses: actions/setup-node@v3
+      - name: ⬇️ Checkout del repositorio
+        uses: actions/checkout@v4
+
+      - name: 🛠️ Set up Node.js
+        uses: actions/setup-node@v4
         with:
           node-version: '20'
           cache: npm
 
-      - name: Install dependencies
+      - name: 📦 Instalar dependencias (para EAS)
+        working-directory: ./GeoTrack
         run: npm install
-        working-directory: ./GeoTrack/GeoTrack
 
-      - name: Download artifacts
+      - name: 📥 Descargar artefactos
         uses: actions/download-artifact@v4
         with:
           name: geotrack-${{ github.sha }}
-          path: dist/
-      
-      - name: Authenticate with EAS
+          path: GeoTrack/dist/
+
+      - name: 🔑 Authenticate with EAS
         uses: expo/expo-github-action@v8
         with:
           expo-version: latest
@@ -82,14 +79,14 @@ jobs:
           token: ${{ env.EAS_TOKEN }}
           eas-cache: true
           expo-cache: true
-          working-directory: ./GeoTrack/GeoTrack
+          working-directory: ./GeoTrack
 
-      - name: Publish QR to EAS
+      - name: 🌐 Publish QR to EAS
         id: publish
+        working-directory: ./GeoTrack
         run: eas update --auto --non-interactive
-        working-directory: ./GeoTrack/GeoTrack
 
-      - name: Notify to any service that support APIs
+      - name: 🔔 Notify a webhook
         uses: muhfaris/request-action@v0.1.2
         with:
           url: https://webhook.site/c32e9df6-a803-413d-8613-0ff24a9042b8
