@@ -83,25 +83,16 @@ jobs:
           [ -f "eas.json" ] && echo "✅ eas.json encontrado" || echo "❌ eas.json NO encontrado"
           [ -f "app.json" ] && echo "✅ app.json encontrado" || echo "❌ app.json NO encontrado"
 
-      - name: 🔐 VERIFICAR TOKEN Y AUTENTICAR
+      - name: 🔐 Autenticar con EAS
         working-directory: ./GeoTrack
         run: |
-          echo "=== INFORMACIÓN DEL TOKEN ==="
-          echo "Token disponible: ${{ secrets.EAS_TOKEN != '' }}"
-          
-          # Verificar longitud del token usando bash
-          TOKEN_LENGTH=${#EAS_TOKEN}
-          echo "Longitud del token: $TOKEN_LENGTH"
-          
           echo "=== Autenticando con EAS ==="
-          # Método que SÍ funciona - pasar token directamente
           eas whoami --token "${{ secrets.EAS_TOKEN }}"
 
-      - name: 🌐 PUBLICAR EN EAS UPDATE
+      - name: 🌐 Publicar en EAS Update
         working-directory: ./GeoTrack
         run: |
           echo "=== Publicando en EAS Update ==="
-          # Método directo que evita problemas de variables de entorno
           eas update --auto --non-interactive --token "${{ secrets.EAS_TOKEN }}"
 
       - name: 🔔 Notificar webhook
@@ -109,5 +100,5 @@ jobs:
         with:
           url: https://webhook.site/c32e9df6-a803-413d-8613-0ff24a9042b8
           method: POST
-          headers: '{"Content-Type":"application/json"}' 
+          headers: '{"Content-Type":"application/json"}'
           body: '{"status":"success","branch":"feature/unit-test","environment":"development","url":"https://expo.dev"}'
