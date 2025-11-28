@@ -82,6 +82,12 @@ jobs:
           echo "=== Archivos de configuración ==="
           [ -f "eas.json" ] && echo "eas.json encontrado" || echo "eas.json NO encontrado"
           [ -f "app.json" ] && echo "app.json encontrado" || echo "app.json NO encontrado"
+          echo "=== Verificando variable EXPO_TOKEN ==="
+          if [ -n "$EXPO_TOKEN" ]; then
+            echo "EXPO_TOKEN está configurada (longitud: ${#EXPO_TOKEN})"
+          else
+            echo "EXPO_TOKEN NO está configurada"
+          fi
 
       - name: 🔐 Autenticar con EAS usando variable de entorno
         working-directory: ./GeoTrack
@@ -89,7 +95,9 @@ jobs:
           EXPO_TOKEN: ${{ secrets.EAS_TOKEN }}
         run: |
           echo "=== Autenticando con EAS ==="
-          eas whoami
+          echo "Longitud del token: ${#EXPO_TOKEN}"
+          # Usar npx para asegurar que el comando use las variables de entorno
+          npx eas whoami --token $EXPO_TOKEN
 
       - name: 🌐 Publicar en EAS
         id: publish
@@ -98,10 +106,10 @@ jobs:
           EXPO_TOKEN: ${{ secrets.EAS_TOKEN }}
         run: |
           echo "=== Verificando autenticación ==="
-          eas whoami
+          npx eas whoami --token $EXPO_TOKEN
           
           echo "=== Ejecutando EAS Update ==="
-          eas update --auto --non-interactive
+          npx eas update --auto --non-interactive --token $EXPO_TOKEN
 
       - name: 🔔 Notificar webhook
         uses: muhfaris/request-action@v0.1.2
