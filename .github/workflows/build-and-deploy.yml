@@ -63,7 +63,10 @@ jobs:
 
       - name: 📦 Instalar dependencias (para EAS)
         working-directory: ./GeoTrack
-        run: npm install
+        run: |
+          npm install
+          # Instalar EAS CLI globalmente
+          npm install -g @expo/cli @expo/eas-cli
 
       - name: 📥 Descargar artefactos
         uses: actions/download-artifact@v4
@@ -71,31 +74,35 @@ jobs:
           name: geotrack-${{ github.sha }}
           path: GeoTrack/dist/
 
-      - name: 🔑 Authenticate with EAS
-        uses: expo/expo-github-action@v8
-        with:
-          expo-version: latest
-          eas-version: latest
-          token: ${{ env.EAS_TOKEN }}
-          # Eliminados eas-cache y expo-cache ya que pueden causar problemas
-          # working-directory NO es un parámetro válido para esta acción
+      - name: 🔑 Configurar EAS
+        working-directory: ./GeoTrack
+        run: |
+          echo "Directorio actual: $(pwd)"
+          echo "=== Verificando EAS ==="
+          npx eas --version || eas --version
+          echo "=== Verificando Expo ==="
+          npx expo --version || expo --version
 
-      - name: 🌐 Publish to EAS
+      - name: 🔐 Login a EAS
+        working-directory: ./GeoTrack
+        run: |
+          # Usar npx para asegurar que usa el EAS CLI instalado
+          npx eas login --token ${{ env.EAS_TOKEN }}
+
+      - name: 🌐 Publicar en EAS
         id: publish
         working-directory: ./GeoTrack
         run: |
-          # Verificar que estamos en el directorio correcto
-          echo "Directorio actual: $(pwd)"
-          echo "Contenido del directorio:"
-          ls -la
-          
-          # Verificar que EAS CLI está instalado y configurado
+          echo "=== Verificando autenticación ==="
           npx eas whoami
           
-          # Ejecutar el comando de update
+          echo "=== Verificando configuración del proyecto ==="
+          ls -la | grep -E "(eas.json|app.json|package.json)"
+          
+          echo "=== Ejecutando EAS Update ==="
           npx eas update --auto --non-interactive
 
-      - name: 🔔 Notify a webhook
+      - name: 🔔 Notificar webhook
         uses: muhfaris/request-action@v0.1.2
         with:
           url: https://webhook.site/c32e9df6-a803-413d-8613-0ff24a9042b8
