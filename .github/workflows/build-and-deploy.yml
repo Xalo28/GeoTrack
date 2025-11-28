@@ -26,6 +26,7 @@ jobs:
           ls -la
           echo "=== Buscando package.json ==="
           find . -name "package.json" -type f | head -10
+
       - name: 📦 Instalar dependencias
         working-directory: ./GeoTrack
         run: npm install
@@ -63,6 +64,7 @@ jobs:
         run: |
           npm install
           npm install -g eas-cli
+
       - name: 📥 Descargar artefactos
         uses: actions/download-artifact@v4
         with:
@@ -80,24 +82,25 @@ jobs:
           echo "=== Archivos de configuración ==="
           [ -f "eas.json" ] && echo "✅ eas.json encontrado" || echo "❌ eas.json NO encontrado"
           [ -f "app.json" ] && echo "✅ app.json encontrado" || echo "❌ app.json NO encontrado"
-      - name: 🔐 Autenticar con EAS
+
+      - name: 🔐 VERIFICAR TOKEN Y AUTENTICAR
         working-directory: ./GeoTrack
-        env:
-          EXPO_TOKEN: ${{ secrets.EAS_TOKEN }}
         run: |
-          echo "=== Autenticando con EAS ==="
-          echo "Longitud del token: ${#EXPO_TOKEN}"
-          eas whoami
-      - name: 🌐 Publicar en EAS
-        working-directory: ./GeoTrack
-        env:
-          EXPO_TOKEN: ${{ secrets.EAS_TOKEN }}
-        run: |
-          echo "=== Verificando autenticación ==="
-          eas whoami
+          echo "=== INFORMACIÓN DEL TOKEN ==="
+          echo "Token disponible: ${{ secrets.EAS_TOKEN != '' }}"
+          echo "Longitud del token: ${{ secrets.EAS_TOKEN | length }}"
           
-          echo "=== Ejecutando EAS Update ==="
-          eas update --auto --non-interactive
+          echo "=== Autenticando con EAS ==="
+          # Método que SÍ funciona - pasar token directamente
+          eas whoami --token "${{ secrets.EAS_TOKEN }}"
+
+      - name: 🌐 PUBLICAR EN EAS UPDATE
+        working-directory: ./GeoTrack
+        run: |
+          echo "=== Publicando en EAS Update ==="
+          # Método directo que evita problemas de variables de entorno
+          eas update --auto --non-interactive --token "${{ secrets.EAS_TOKEN }}"
+
       - name: 🔔 Notificar webhook
         uses: muhfaris/request-action@v0.1.2
         with:
