@@ -26,7 +26,6 @@ jobs:
           ls -la
           echo "=== Buscando package.json ==="
           find . -name "package.json" -type f | head -10
-
       - name: 📦 Instalar dependencias
         working-directory: ./GeoTrack
         run: npm install
@@ -64,7 +63,6 @@ jobs:
         run: |
           npm install
           npm install -g eas-cli
-
       - name: 📥 Descargar artefactos
         uses: actions/download-artifact@v4
         with:
@@ -82,25 +80,24 @@ jobs:
           echo "=== Archivos de configuración ==="
           [ -f "eas.json" ] && echo "✅ eas.json encontrado" || echo "❌ eas.json NO encontrado"
           [ -f "app.json" ] && echo "✅ app.json encontrado" || echo "❌ app.json NO encontrado"
-
-      - name: 🔐 VERIFICAR TOKEN Y AUTENTICAR
+      - name: 🔐 Autenticar con EAS
         working-directory: ./GeoTrack
+        env:
+          EXPO_TOKEN: ${{ secrets.EAS_TOKEN }}
         run: |
-          echo "=== INFORMACIÓN DEL TOKEN ==="
-          echo "Token disponible: ${{ secrets.EAS_TOKEN != '' }}"
-          echo "Longitud del token: ${{ secrets.EAS_TOKEN | length }}"
-          
           echo "=== Autenticando con EAS ==="
-          # Método que SÍ funciona - pasar token directamente
-          eas whoami --token "${{ secrets.EAS_TOKEN }}"
-
-      - name: 🌐 PUBLICAR EN EAS UPDATE
+          echo "Longitud del token: ${#EXPO_TOKEN}"
+          eas whoami
+      - name: 🌐 Publicar en EAS
         working-directory: ./GeoTrack
+        env:
+          EXPO_TOKEN: ${{ secrets.EAS_TOKEN }}
         run: |
-          echo "=== Publicando en EAS Update ==="
-          # Método directo que evita problemas de variables de entorno
-          eas update --auto --non-interactive --token "${{ secrets.EAS_TOKEN }}"
-
+          echo "=== Verificando autenticación ==="
+          eas whoami
+          
+          echo "=== Ejecutando EAS Update ==="
+          eas update --auto --non-interactive
       - name: 🔔 Notificar webhook
         uses: muhfaris/request-action@v0.1.2
         with:
