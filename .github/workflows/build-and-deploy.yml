@@ -26,23 +26,24 @@ jobs:
           ls -la
           echo "=== Buscando package.json ==="
           find . -name "package.json" -type f | head -10
+
       - name: 📦 Instalar dependencias
-        working-directory: ./GeoTrack # ⬅️ CORREGIDO
+        working-directory: ./GeoTrack
         run: npm install
 
       - name: 🧪 Ejecutar tests
-        working-directory: ./GeoTrack # ⬅️ CORREGIDO
+        working-directory: ./GeoTrack
         run: npm run test
 
       - name: 🏗️ Build del proyecto
-        working-directory: ./GeoTrack # ⬅️ CORREGIDO
+        working-directory: ./GeoTrack
         run: npm run build
 
       - name: 📤 Generar y subir artefactos
         uses: actions/upload-artifact@v4
         with:
           name: geotrack-${{ github.sha }}
-          path: GeoTrack/dist/ # ⬅️ CORREGIDO (eliminando el GeoTrack redundante)
+          path: GeoTrack/dist/
           retention-days: 1
 
   publish-to-eas:
@@ -61,14 +62,14 @@ jobs:
           cache: npm
 
       - name: 📦 Instalar dependencias (para EAS)
-        working-directory: ./GeoTrack # ⬅️ CORREGIDO
+        working-directory: ./GeoTrack
         run: npm install
 
       - name: 📥 Descargar artefactos
         uses: actions/download-artifact@v4
         with:
           name: geotrack-${{ github.sha }}
-          path: GeoTrack/dist/ # ⬅️ CORREGIDO (eliminando el GeoTrack redundante)
+          path: GeoTrack/dist/
 
       - name: 🔑 Authenticate with EAS
         uses: expo/expo-github-action@v8
@@ -76,19 +77,28 @@ jobs:
           expo-version: latest
           eas-version: latest
           token: ${{ env.EAS_TOKEN }}
-          eas-cache: true
-          expo-cache: true
-          working-directory: ./GeoTrack # ⬅️ CORREGIDO
+          # Eliminados eas-cache y expo-cache ya que pueden causar problemas
+          # working-directory NO es un parámetro válido para esta acción
 
-      - name: 🌐 Publish QR to EAS
+      - name: 🌐 Publish to EAS
         id: publish
-        working-directory: ./GeoTrack # ⬅️ CORREGIDO
-        run: eas update --auto --non-interactive
+        working-directory: ./GeoTrack
+        run: |
+          # Verificar que estamos en el directorio correcto
+          echo "Directorio actual: $(pwd)"
+          echo "Contenido del directorio:"
+          ls -la
+          
+          # Verificar que EAS CLI está instalado y configurado
+          npx eas whoami
+          
+          # Ejecutar el comando de update
+          npx eas update --auto --non-interactive
 
       - name: 🔔 Notify a webhook
         uses: muhfaris/request-action@v0.1.2
         with:
           url: https://webhook.site/c32e9df6-a803-413d-8613-0ff24a9042b8
-          method: 'POST'
+          method: POST
           headers: '{"Content-Type":"application/json"}'
-          body: '{"status":"success","branch":"feature/unit-test","environment":"development","url":"https://qr"}'
+          body: '{"status":"success","branch":"feature/unit-test","environment":"development","url":"https://expo.dev"}'
