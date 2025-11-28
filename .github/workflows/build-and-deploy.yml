@@ -28,22 +28,22 @@ jobs:
           find . -name "package.json" -type f | head -10
 
       - name: 📦 Instalar dependencias
-        working-directory: ./GeoTrack/GeoTrack
+        working-directory: ./GeoTrack # ⬅️ CORREGIDO
         run: npm install
 
       - name: 🧪 Ejecutar tests
-        working-directory: ./GeoTrack/GeoTrack
+        working-directory: ./GeoTrack # ⬅️ CORREGIDO
         run: npm run test
 
       - name: 🏗️ Build del proyecto
-        working-directory: ./GeoTrack/GeoTrack
+        working-directory: ./GeoTrack # ⬅️ CORREGIDO
         run: npm run build
 
       - name: 📤 Generar y subir artefactos
         uses: actions/upload-artifact@v4
         with:
           name: geotrack-${{ github.sha }}
-          path: GeoTrack/GeoTrack/dist/
+          path: GeoTrack/dist/ # ⬅️ CORREGIDO (eliminando el GeoTrack redundante)
           retention-days: 1
 
   publish-to-eas:
@@ -62,14 +62,14 @@ jobs:
           cache: npm
 
       - name: 📦 Instalar dependencias (para EAS)
-        working-directory: ./GeoTrack/GeoTrack
+        working-directory: ./GeoTrack # ⬅️ CORREGIDO
         run: npm install
 
       - name: 📥 Descargar artefactos
         uses: actions/download-artifact@v4
         with:
           name: geotrack-${{ github.sha }}
-          path: GeoTrack/GeoTrack/dist/
+          path: GeoTrack/dist/ # ⬅️ CORREGIDO (eliminando el GeoTrack redundante)
 
       - name: 🔑 Authenticate with EAS
         uses: expo/expo-github-action@v8
@@ -79,11 +79,11 @@ jobs:
           token: ${{ env.EAS_TOKEN }}
           eas-cache: true
           expo-cache: true
-          working-directory: ./GeoTrack/GeoTrack
+          working-directory: ./GeoTrack # ⬅️ CORREGIDO
 
       - name: 🌐 Publish QR to EAS
         id: publish
-        working-directory: ./GeoTrack/GeoTrack
+        working-directory: ./GeoTrack # ⬅️ CORREGIDO
         run: eas update --auto --non-interactive
 
       - name: 🔔 Notify a webhook
