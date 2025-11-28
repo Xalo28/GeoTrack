@@ -1,4 +1,4 @@
-name: Build and Deploy in EAS - Unit Tests
+name: Build and Deploy in EAS - feature/unit-test
 
 on:
   push:
@@ -11,64 +11,59 @@ jobs:
     env:
       NODE_OPTIONS: --max-old-space-size=4096
     steps:
-      - name: ⬇️ Checkout del Repositorio
-        uses: actions/checkout@v4
+      - name: Checkout repository
+        uses: actions/checkout@v3
     
-      - name: 🛠️ Set up Node.js
-        uses: actions/setup-node@v4
+      - name: Set up Node.js
+        uses: actions/setup-node@v3
         with:
           node-version: '20'
           cache: npm
 
-      - name: 📦 Instalar dependencias principales
+      - name: Install dependencies
         run: npm install
-        working-directory: ./GeoTrack/GeoTrack  # <--- CORREGIDO
+        working-directory: ./GeoTrack/GeoTrack
 
-      - name: 🧪 Instalar dependencias de pruebas
-        run: npm install -D @testing-library/react-native @testing-library/jest-native react-test-renderer@19.1.0 --legacy-peer-deps
-        working-directory: ./GeoTrack/GeoTrack  # <--- CORREGIDO
-
-      - name: 🏃 Run unit tests
-        run: npm test
-        working-directory: ./GeoTrack/GeoTrack  # <--- CORREGIDO
-
-      - name: 🏗️ Build project
+      - name: Build project
         run: npm run build
-        working-directory: ./GeoTrack/GeoTrack  # <--- CORREGIDO
+        working-directory: ./GeoTrack/GeoTrack
 
-      - name: 📤 Generar y subir artefactos
+      - name: Unit tests
+        run: npm run test
+        working-directory: ./GeoTrack/GeoTrack
+
+      - name: Generate artifacts
         uses: actions/upload-artifact@v4
         with:
           name: geotrack-${{ github.sha }}
-          path: GeoTrack/GeoTrack/dist/  # <--- CORREGIDO
-          retention-days: 1
+          path: GeoTrack/GeoTrack/dist/
 
   publish-to-eas:
     needs: build-and-archive
     env:
-      EAS_TOKEN: ${{ secrets.EAS_TOKEN }}
+      EAS_TOKEN: lkjQM86ufwpkKLq-GE6R2iYv48WCaMgLtUsmGZM0
     runs-on: ubuntu-latest
     steps:
-      - name: ⬇️ Checkout del Repositorio
-        uses: actions/checkout@v4
+      - name: Checkout repository
+        uses: actions/checkout@v3
     
-      - name: 🛠️ Set up Node.js
-        uses: actions/setup-node@v4
+      - name: Set up Node.js
+        uses: actions/setup-node@v3
         with:
           node-version: '20'
           cache: npm
 
-      - name: 📦 Instalar dependencias para EAS
+      - name: Install dependencies
         run: npm install
-        working-directory: ./GeoTrack/GeoTrack  # <--- CORREGIDO
+        working-directory: ./GeoTrack/GeoTrack
 
-      - name: 📥 Descargar artefactos
+      - name: Download artifacts
         uses: actions/download-artifact@v4
         with:
           name: geotrack-${{ github.sha }}
           path: dist/
-          
-      - name: 🔑 Authenticate with EAS
+      
+      - name: Authenticate with EAS
         uses: expo/expo-github-action@v8
         with:
           expo-version: latest
@@ -76,17 +71,17 @@ jobs:
           token: ${{ env.EAS_TOKEN }}
           eas-cache: true
           expo-cache: true
-          working-directory: ./GeoTrack/GeoTrack  # <--- CORREGIDO
+          working-directory: ./GeoTrack/GeoTrack
 
-      - name: 🌐 Publish QR to EAS
+      - name: Publish QR to EAS
         id: publish
         run: eas update --auto --non-interactive
-        working-directory: ./GeoTrack/GeoTrack  # <--- CORREGIDO
+        working-directory: ./GeoTrack/GeoTrack
 
-      - name: 🔔 Notify a Webhook
+      - name: Notify to any service that support APIs
         uses: muhfaris/request-action@v0.1.2
         with:
           url: https://webhook.site/c32e9df6-a803-413d-8613-0ff24a9042b8
           method: 'POST'
           headers: '{"Content-Type":"application/json"}'
-          body: '{"status":"success","branch":"feature/unit-test","environment":"development","update_url":"${{ steps.publish.outputs.update-url }}"}'
+          body: '{"status":"success","branch":"feature/unit-test","environment":"development","url":"https://qr"}'
