@@ -10,9 +10,6 @@ jobs:
     runs-on: ubuntu-latest
     env:
       NODE_OPTIONS: --max-old-space-size=4096
-    defaults:
-      run:
-        working-directory: ./GeoTrack  # ← AÑADE ESTO
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -24,30 +21,31 @@ jobs:
             cache: npm
 
       - name: Install dependencies
-        run: npm install  # Ahora se ejecutará en ./GeoTrack
+        run: npm install
+        working-directory: ./GeoTrack  # ← AÑADIR EN CADA STEP
 
       - name: Install test dependencies
         run: npm install -D @testing-library/react-native @testing-library/jest-native react-test-renderer@19.1.0 --legacy-peer-deps
+        working-directory: ./GeoTrack  # ← AÑADIR EN CADA STEP
 
       - name: Run unit tests
         run: npm test
+        working-directory: ./GeoTrack  # ← AÑADIR EN CADA STEP
 
       - name: Build project
         run: npm run build
+        working-directory: ./GeoTrack  # ← AÑADIR EN CADA STEP
 
       - name: Generate artifacts
         uses: actions/upload-artifact@v4
         with:
             name: geotrack-${{ github.sha }}
-            path: GeoTrack/dist/  # ← Actualiza esta ruta también
+            path: GeoTrack/dist/
 
   publish-to-eas:
     needs: build-and-archive
     env:
         EAS_TOKEN: lkjQM86ufwpkKLq-GE6R2iYv48WCaMgLtUsmGZM0
-    defaults:
-      run:
-        working-directory: ./GeoTrack  # ← AÑADE ESTO TAMBIÉN
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
@@ -61,12 +59,13 @@ jobs:
 
       - name: Install dependencies
         run: npm install
+        working-directory: ./GeoTrack  # ← AÑADIR EN CADA STEP
 
       - name: Download artifacts
         uses: actions/download-artifact@v4
         with:
             name: geotrack-${{ github.sha }}
-            path: GeoTrack/dist/  # ← Actualiza esta ruta
+            path: GeoTrack/dist/
       
       - name: Authenticate with EAS
         uses: expo/expo-github-action@v8
@@ -80,6 +79,7 @@ jobs:
       - name: Publish QR to EAS
         id: publish
         run: eas update --auto --non-interactive
+        working-directory: ./GeoTrack  # ← AÑADIR EN CADA STEP
 
       - name: Notify to any service that support APIs
         uses: muhfaris/request-action@v0.1.2
