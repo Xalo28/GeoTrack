@@ -14,36 +14,76 @@ jobs:
       - name: ⬇️ Checkout del repositorio
         uses: actions/checkout@v4
 
+      - name: 🔍 Diagnóstico completo de la estructura
+        run: |
+          echo "=== Directorio actual ==="
+          pwd
+          echo "=== Estructura completa ==="
+          ls -la
+          echo "=== Buscando todos los package.json ==="
+          find . -name "package.json" -type f
+          echo "=== Estructura de GeoTrack ==="
+          ls -la GeoTrack/ || echo "No existe GeoTrack/"
+          echo "=== Estructura si existe GeoTrack/GeoTrack ==="
+          ls -la GeoTrack/GeoTrack/ 2>/dev/null || echo "No existe GeoTrack/GeoTrack/"
+
       - name: 🛠️ Set up Node.js
         uses: actions/setup-node@v4
         with:
           node-version: '20'
           cache: npm
 
-      - name: 🔍 Comprobar estructura del proyecto
+      - name: 📦 Instalar dependencias (prueba sin working-directory primero)
         run: |
-          echo "PWD: $(pwd)"
-          ls -la
-          echo "=== Buscando package.json ==="
-          find . -name "package.json" -type f | head -10
-
-      - name: 📦 Instalar dependencias
-        working-directory: ./GeoTrack/GeoTrack
-        run: npm install
+          if [ -f "package.json" ]; then
+            echo "✅ package.json encontrado en raíz"
+            npm install
+          elif [ -f "GeoTrack/package.json" ]; then
+            echo "✅ package.json encontrado en GeoTrack/"
+            cd GeoTrack
+            npm install
+          elif [ -f "GeoTrack/GeoTrack/package.json" ]; then
+            echo "✅ package.json encontrado en GeoTrack/GeoTrack/"
+            cd GeoTrack/GeoTrack
+            npm install
+          else
+            echo "❌ No se encontró package.json en ninguna ubicación"
+            find . -name "package.json" -type f
+            exit 1
+          fi
 
       - name: 🧪 Ejecutar tests
-        working-directory: ./GeoTrack/GeoTrack
-        run: npm run test
+        run: |
+          if [ -f "package.json" ]; then
+            npm run test
+          elif [ -f "GeoTrack/package.json" ]; then
+            cd GeoTrack
+            npm run test
+          elif [ -f "GeoTrack/GeoTrack/package.json" ]; then
+            cd GeoTrack/GeoTrack
+            npm run test
+          fi
 
       - name: 🏗️ Build del proyecto
-        working-directory: ./GeoTrack/GeoTrack
-        run: npm run build
+        run: |
+          if [ -f "package.json" ]; then
+            npm run build
+          elif [ -f "GeoTrack/package.json" ]; then
+            cd GeoTrack
+            npm run build
+          elif [ -f "GeoTrack/GeoTrack/package.json" ]; then
+            cd GeoTrack/GeoTrack
+            npm run build
+          fi
 
       - name: 📤 Generar y subir artefactos
         uses: actions/upload-artifact@v4
         with:
           name: geotrack-${{ github.sha }}
-          path: GeoTrack/GeoTrack/dist/
+          path: |
+            dist/
+            GeoTrack/dist/
+            GeoTrack/GeoTrack/dist/
           retention-days: 1
 
   publish-to-eas:
@@ -61,15 +101,29 @@ jobs:
           node-version: '20'
           cache: npm
 
-      - name: 📦 Instalar dependencias (para EAS)
-        working-directory: ./GeoTrack/GeoTrack
+      - name: 🔍 Encontrar la ubicación correcta
+        id: find_location
+        run: |
+          if [ -f "package.json" ]; then
+            echo "WORKDIR=." >> $GITHUB_OUTPUT
+          elif [ -f "GeoTrack/package.json" ]; then
+            echo "WORKDIR=GeoTrack" >> $GITHUB_OUTPUT
+          elif [ -f "GeoTrack/GeoTrack/package.json" ]; then
+            echo "WORKDIR=GeoTrack/GeoTrack" >> $GITHUB_OUTPUT
+          else
+            echo "❌ No se encontró package.json"
+            exit 1
+          fi
+
+      - name: 📦 Instalar dependencias
         run: npm install
+        working-directory: ${{ steps.find_location.outputs.WORKDIR }}
 
       - name: 📥 Descargar artefactos
         uses: actions/download-artifact@v4
         with:
           name: geotrack-${{ github.sha }}
-          path: GeoTrack/GeoTrack/dist/
+          path: ${{ steps.find_location.outputs.WORKDIR }}/dist/
 
       - name: 🔑 Authenticate with EAS
         uses: expo/expo-github-action@v8
@@ -79,12 +133,12 @@ jobs:
           token: ${{ env.EAS_TOKEN }}
           eas-cache: true
           expo-cache: true
-          working-directory: ./GeoTrack/GeoTrack
+          working-directory: ${{ steps.find_location.outputs.WORKDIR }}
 
       - name: 🌐 Publish QR to EAS
         id: publish
-        working-directory: ./GeoTrack/GeoTrack
         run: eas update --auto --non-interactive
+        working-directory: ${{ steps.find_location.outputs.WORKDIR }}
 
       - name: 🔔 Notify a webhook
         uses: muhfaris/request-action@v0.1.2
