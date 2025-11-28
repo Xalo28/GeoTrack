@@ -59,6 +59,17 @@ jobs:
           node-version: '20'
           cache: npm
 
+      - name: 🔍 DEBUG - Verificar secret
+        run: |
+          echo "=== Verificando secret EAS_TOKEN ==="
+          if [ -n "${{ secrets.EAS_TOKEN }}" ]; then
+            echo "✅ EAS_TOKEN existe en GitHub Secrets"
+            echo "Token (primeros 10 chars): ${{ secrets.EAS_TOKEN | slice: 0, 10 }}..."
+          else
+            echo "❌ EAS_TOKEN NO existe en GitHub Secrets"
+            exit 1
+          fi
+
       - name: 📦 Instalar dependencias y EAS CLI
         working-directory: ./GeoTrack
         run: |
@@ -83,25 +94,18 @@ jobs:
           [ -f "eas.json" ] && echo "✅ eas.json encontrado" || echo "❌ eas.json NO encontrado"
           [ -f "app.json" ] && echo "✅ app.json encontrado" || echo "❌ app.json NO encontrado"
 
-      - name: 🔐 Autenticar con EAS
+      - name: 🔐 Autenticar con Expo Token
         working-directory: ./GeoTrack
-        env:
-          EXPO_TOKEN: ${{ secrets.EAS_TOKEN }}
         run: |
-          echo "=== Autenticando con EAS ==="
-          echo "Longitud del token: ${#EXPO_TOKEN}"
-          eas whoami
+          echo "=== Autenticando con token de Expo ==="
+          # Método más confiable: usar npx con el token explícito
+          EXPO_TOKEN="${{ secrets.EAS_TOKEN }}" npx eas-cli whoami
 
       - name: 🌐 Publicar en EAS
         working-directory: ./GeoTrack
-        env:
-          EXPO_TOKEN: ${{ secrets.EAS_TOKEN }}
         run: |
-          echo "=== Verificando autenticación ==="
-          eas whoami
-          
-          echo "=== Ejecutando EAS Update ==="
-          eas update --auto --non-interactive
+          echo "=== Publicando en EAS Update ==="
+          EXPO_TOKEN="${{ secrets.EAS_TOKEN }}" npx eas-cli update --auto --non-interactive
 
       - name: 🔔 Notificar webhook
         uses: muhfaris/request-action@v0.1.2
