@@ -20,36 +20,36 @@ jobs:
           node-version: '20'
           cache: npm
 
-      - name: 🔍 Comprobar estructura (opcional, puede quitarse)
+      - name: 🔍 Comprobar estructura del proyecto
         run: |
           echo "PWD: $(pwd)"
           ls -la
-          find . -maxdepth 3 -type f -name package.json -print || true
+          echo "=== Buscando package.json ==="
+          find . -name "package.json" -type f | head -10
 
       - name: 📦 Instalar dependencias
-        working-directory: ../GeoTrack
+        working-directory: ./GeoTrack/GeoTrack
         run: npm install
 
       - name: 🧪 Ejecutar tests
-        working-directory: ../GeoTrack
+        working-directory: ./GeoTrack/GeoTrack
         run: npm run test
 
       - name: 🏗️ Build del proyecto
-        working-directory: ../GeoTrack
+        working-directory: ./GeoTrack/GeoTrack
         run: npm run build
 
       - name: 📤 Generar y subir artefactos
         uses: actions/upload-artifact@v4
         with:
           name: geotrack-${{ github.sha }}
-          path: GeoTrack/dist/
+          path: GeoTrack/GeoTrack/dist/
           retention-days: 1
 
   publish-to-eas:
     needs: build-and-archive
     runs-on: ubuntu-latest
     env:
-      # NO poner tokens en texto plano: guarda EAS_TOKEN en Settings -> Secrets -> Actions
       EAS_TOKEN: ${{ secrets.EAS_TOKEN }}
     steps:
       - name: ⬇️ Checkout del repositorio
@@ -62,14 +62,14 @@ jobs:
           cache: npm
 
       - name: 📦 Instalar dependencias (para EAS)
-        working-directory: ../GeoTrack
+        working-directory: ./GeoTrack/GeoTrack
         run: npm install
 
       - name: 📥 Descargar artefactos
         uses: actions/download-artifact@v4
         with:
           name: geotrack-${{ github.sha }}
-          path: GeoTrack/dist/
+          path: GeoTrack/GeoTrack/dist/
 
       - name: 🔑 Authenticate with EAS
         uses: expo/expo-github-action@v8
@@ -79,11 +79,11 @@ jobs:
           token: ${{ env.EAS_TOKEN }}
           eas-cache: true
           expo-cache: true
-          working-directory: ../GeoTrack
+          working-directory: ./GeoTrack/GeoTrack
 
       - name: 🌐 Publish QR to EAS
         id: publish
-        working-directory: .../GeoTrack
+        working-directory: ./GeoTrack/GeoTrack
         run: eas update --auto --non-interactive
 
       - name: 🔔 Notify a webhook
