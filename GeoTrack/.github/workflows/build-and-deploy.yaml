@@ -26,6 +26,7 @@ jobs:
           ls -la
           echo "=== Buscando package.json ==="
           find . -name "package.json" -type f | head -10
+
       - name: 📦 Instalar dependencias
         working-directory: ./GeoTrack
         run: npm install
@@ -62,7 +63,6 @@ jobs:
         working-directory: ./GeoTrack
         run: |
           npm install
-          # Instalar solo EAS CLI (ya incluye lo necesario)
           npm install -g eas-cli
 
       - name: 📥 Descargar artefactos
@@ -80,36 +80,28 @@ jobs:
           echo "=== Verificando configuración del proyecto ==="
           ls -la
           echo "=== Archivos de configuración ==="
-          [ -f "eas.json" ] && echo "eas.json encontrado" || echo "eas.json NO encontrado"
-          [ -f "app.json" ] && echo "app.json encontrado" || echo "app.json NO encontrado"
-          echo "=== Verificando variable EXPO_TOKEN ==="
-          if [ -n "$EXPO_TOKEN" ]; then
-            echo "EXPO_TOKEN está configurada (longitud: ${#EXPO_TOKEN})"
-          else
-            echo "EXPO_TOKEN NO está configurada"
-          fi
+          [ -f "eas.json" ] && echo "✅ eas.json encontrado" || echo "❌ eas.json NO encontrado"
+          [ -f "app.json" ] && echo "✅ app.json encontrado" || echo "❌ app.json NO encontrado"
 
-      - name: 🔐 Autenticar con EAS usando variable de entorno
+      - name: 🔐 Autenticar con EAS
         working-directory: ./GeoTrack
         env:
           EXPO_TOKEN: ${{ secrets.EAS_TOKEN }}
         run: |
           echo "=== Autenticando con EAS ==="
           echo "Longitud del token: ${#EXPO_TOKEN}"
-          # Usar npx para asegurar que el comando use las variables de entorno
-          npx eas whoami --token $EXPO_TOKEN
+          eas whoami
 
       - name: 🌐 Publicar en EAS
-        id: publish
         working-directory: ./GeoTrack
         env:
           EXPO_TOKEN: ${{ secrets.EAS_TOKEN }}
         run: |
           echo "=== Verificando autenticación ==="
-          npx eas whoami --token $EXPO_TOKEN
+          eas whoami
           
           echo "=== Ejecutando EAS Update ==="
-          npx eas update --auto --non-interactive --token $EXPO_TOKEN
+          eas update --auto --non-interactive
 
       - name: 🔔 Notificar webhook
         uses: muhfaris/request-action@v0.1.2
