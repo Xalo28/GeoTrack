@@ -10,18 +10,21 @@ jobs:
     runs-on: ubuntu-latest
     env:
       NODE_OPTIONS: --max-old-space-size=4096
+    defaults:
+      run:
+        working-directory: ./GeoTrack  # ← AÑADE ESTO
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4  # Cambia a v4
+        uses: actions/checkout@v4
     
       - name: Set up Node.js
-        uses: actions/setup-node@v4  # Cambia a v4
+        uses: actions/setup-node@v4
         with:
             node-version: '20'
             cache: npm
 
       - name: Install dependencies
-        run: npm install
+        run: npm install  # Ahora se ejecutará en ./GeoTrack
 
       - name: Install test dependencies
         run: npm install -D @testing-library/react-native @testing-library/jest-native react-test-renderer@19.1.0 --legacy-peer-deps
@@ -36,19 +39,22 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
             name: geotrack-${{ github.sha }}
-            path: dist/
+            path: GeoTrack/dist/  # ← Actualiza esta ruta también
 
   publish-to-eas:
     needs: build-and-archive
     env:
         EAS_TOKEN: lkjQM86ufwpkKLq-GE6R2iYv48WCaMgLtUsmGZM0
+    defaults:
+      run:
+        working-directory: ./GeoTrack  # ← AÑADE ESTO TAMBIÉN
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4  # Cambia a v4
+        uses: actions/checkout@v4
     
       - name: Set up Node.js
-        uses: actions/setup-node@v4  # Cambia a v4
+        uses: actions/setup-node@v4
         with:
             node-version: '20'
             cache: npm
@@ -60,7 +66,7 @@ jobs:
         uses: actions/download-artifact@v4
         with:
             name: geotrack-${{ github.sha }}
-            path: dist/
+            path: GeoTrack/dist/  # ← Actualiza esta ruta
       
       - name: Authenticate with EAS
         uses: expo/expo-github-action@v8
