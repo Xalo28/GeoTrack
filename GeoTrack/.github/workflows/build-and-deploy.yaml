@@ -6,7 +6,6 @@ on:
       - feature/unit-test
 
 jobs:
-  # Job 1: Realiza Checkout, Instala, Prueba, Construye y Crea el Artefacto
   build-and-archive:
     runs-on: ubuntu-latest
     env:
@@ -23,32 +22,31 @@ jobs:
 
       - name: 📦 Instalar dependencias principales
         run: npm install
-        working-directory: ./GeoTrack # <--- ¡CORRECCIÓN CLAVE!
+        working-directory: ./GeoTrack/GeoTrack  # <--- CORREGIDO
 
       - name: 🧪 Instalar dependencias de pruebas
         run: npm install -D @testing-library/react-native @testing-library/jest-native react-test-renderer@19.1.0 --legacy-peer-deps
-        working-directory: ./GeoTrack # <--- ¡CORRECCIÓN CLAVE!
+        working-directory: ./GeoTrack/GeoTrack  # <--- CORREGIDO
 
       - name: 🏃 Run unit tests
         run: npm test
-        working-directory: ./GeoTrack # <--- ¡CORRECCIÓN CLAVE!
+        working-directory: ./GeoTrack/GeoTrack  # <--- CORREGIDO
 
       - name: 🏗️ Build project
         run: npm run build
-        working-directory: ./GeoTrack # <--- ¡CORRECCIÓN CLAVE!
+        working-directory: ./GeoTrack/GeoTrack  # <--- CORREGIDO
 
       - name: 📤 Generar y subir artefactos
         uses: actions/upload-artifact@v4
         with:
           name: geotrack-${{ github.sha }}
-          path: GeoTrack/dist/ # Ajusta la ruta para incluir el subdirectorio GeoTrack
+          path: GeoTrack/GeoTrack/dist/  # <--- CORREGIDO
           retention-days: 1
 
-  # Job 2: Descarga el artefacto y Publica a EAS
   publish-to-eas:
     needs: build-and-archive
     env:
-      EAS_TOKEN: ${{ secrets.EAS_TOKEN }} # ¡USAR SECRETO!
+      EAS_TOKEN: ${{ secrets.EAS_TOKEN }}
     runs-on: ubuntu-latest
     steps:
       - name: ⬇️ Checkout del Repositorio
@@ -62,7 +60,7 @@ jobs:
 
       - name: 📦 Instalar dependencias para EAS
         run: npm install
-        working-directory: ./GeoTrack # <--- ¡CORRECCIÓN CLAVE!
+        working-directory: ./GeoTrack/GeoTrack  # <--- CORREGIDO
 
       - name: 📥 Descargar artefactos
         uses: actions/download-artifact@v4
@@ -78,12 +76,12 @@ jobs:
           token: ${{ env.EAS_TOKEN }}
           eas-cache: true
           expo-cache: true
-          working-directory: ./GeoTrack # <--- ¡CORRECCIÓN CLAVE!
+          working-directory: ./GeoTrack/GeoTrack  # <--- CORREGIDO
 
       - name: 🌐 Publish QR to EAS
         id: publish
         run: eas update --auto --non-interactive
-        working-directory: ./GeoTrack # <--- ¡CORRECCIÓN CLAVE!
+        working-directory: ./GeoTrack/GeoTrack  # <--- CORREGIDO
 
       - name: 🔔 Notify a Webhook
         uses: muhfaris/request-action@v0.1.2
