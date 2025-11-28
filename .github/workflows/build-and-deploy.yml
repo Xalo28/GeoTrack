@@ -50,7 +50,7 @@ jobs:
     needs: build-and-archive
     runs-on: ubuntu-latest
     env:
-      EAS_TOKEN: ${{ secrets.EAS_TOKEN }}
+      EXPO_TOKEN: ${{ secrets.EAS_TOKEN }}
     steps:
       - name: ⬇️ Checkout del repositorio
         uses: actions/checkout@v4
@@ -66,7 +66,7 @@ jobs:
         run: |
           npm install
           # Instalar EAS CLI correctamente
-          npm install -g eas-cli
+          npm install -g @expo/cli eas-cli
 
       - name: 📥 Descargar artefactos
         uses: actions/download-artifact@v4
@@ -80,17 +80,26 @@ jobs:
           echo "Directorio actual: $(pwd)"
           echo "=== Verificando EAS CLI ==="
           eas --version
+          echo "=== Verificando Expo CLI ==="
+          expo --version
           echo "=== Verificando configuración del proyecto ==="
-          ls -la | grep -E "(eas.json|app.json|package.json)"
+          ls -la
+          echo "=== Archivos de configuración ==="
+          [ -f "eas.json" ] && echo "eas.json encontrado" || echo "eas.json NO encontrado"
+          [ -f "app.json" ] && echo "app.json encontrado" || echo "app.json NO encontrado"
 
-      - name: 🔐 Login a EAS
+      - name: 🔐 Autenticar con EAS usando variable de entorno
         working-directory: ./GeoTrack
         run: |
-          eas login --token ${{ env.EAS_TOKEN }}
+          # Usar EXPO_TOKEN en lugar de --token flag
+          echo "=== Autenticando con EAS ==="
+          EXPO_TOKEN=${{ env.EXPO_TOKEN }} npx eas whoami
 
       - name: 🌐 Publicar en EAS
         id: publish
         working-directory: ./GeoTrack
+        env:
+          EXPO_TOKEN: ${{ secrets.EAS_TOKEN }}
         run: |
           echo "=== Verificando autenticación ==="
           eas whoami
