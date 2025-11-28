@@ -59,6 +59,27 @@ jobs:
           node-version: '20'
           cache: npm
 
+      - name: 🔍 VERIFICACIÓN COMPLETA DEL TOKEN
+        run: |
+          echo "=== VERIFICACIÓN DEL SECRET EAS_TOKEN ==="
+          echo "¿Secret existe?: ${{ secrets.EAS_TOKEN != '' }}"
+          
+          # Crear un script para verificar el token sin mostrarlo completo
+          cat > verify_token.sh << 'EOF'
+          if [ -n "$1" ]; then
+            echo "✅ Token RECIBIDO correctamente"
+            echo "Longitud del token: ${#1}"
+            echo "Primeros 8 caracteres: ${1:0:8}..."
+            echo "Últimos 8 caracteres: ...${1: -8}"
+          else
+            echo "❌ Token VACÍO o NO RECIBIDO"
+            exit 1
+          fi
+          EOF
+          
+          chmod +x verify_token.sh
+          ./verify_token.sh "${{ secrets.EAS_TOKEN }}"
+
       - name: 📦 Instalar dependencias y EAS CLI
         working-directory: ./GeoTrack
         run: |
@@ -83,11 +104,28 @@ jobs:
           [ -f "eas.json" ] && echo "✅ eas.json encontrado" || echo "❌ eas.json NO encontrado"
           [ -f "app.json" ] && echo "✅ app.json encontrado" || echo "❌ app.json NO encontrado"
 
-      - name: 🔐 Autenticar con EAS
+      - name: 🔐 MÉTODO 1 - Autenticación con archivo de configuración
         working-directory: ./GeoTrack
         run: |
-          echo "=== Autenticando con EAS ==="
+          echo "=== MÉTODO 1: Configuración por archivo ==="
+          # Crear directorio .expo
+          mkdir -p ~/.expo
+          # Crear archivo de configuración con el token
+          echo "{\"auth\": {\"sessionSecret\": \"${{ secrets.EAS_TOKEN }}\"}}" > ~/.expo/state.json
+          echo "Archivo de configuración creado"
+          eas whoami
+
+      - name: 🔐 MÉTODO 2 - Autenticación directa con token
+        working-directory: ./GeoTrack
+        run: |
+          echo "=== MÉTODO 2: Token directo ==="
           eas whoami --token "${{ secrets.EAS_TOKEN }}"
+
+      - name: 🔐 MÉTODO 3 - Usando npx eas-cli
+        working-directory: ./GeoTrack
+        run: |
+          echo "=== MÉTODO 3: npx eas-cli ==="
+          npx eas-cli whoami --token "${{ secrets.EAS_TOKEN }}"
 
       - name: 🌐 Publicar en EAS Update
         working-directory: ./GeoTrack
