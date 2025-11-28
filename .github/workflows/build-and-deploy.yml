@@ -65,8 +65,8 @@ jobs:
         working-directory: ./GeoTrack
         run: |
           npm install
-          # Instalar EAS CLI correctamente
-          npm install -g @expo/cli eas-cli
+          # Instalar solo EAS CLI
+          npm install -g eas-cli
 
       - name: 📥 Descargar artefactos
         uses: actions/download-artifact@v4
@@ -80,20 +80,20 @@ jobs:
           echo "Directorio actual: $(pwd)"
           echo "=== Verificando EAS CLI ==="
           eas --version
-          echo "=== Verificando Expo CLI ==="
-          expo --version
           echo "=== Verificando configuración del proyecto ==="
           ls -la
           echo "=== Archivos de configuración ==="
-          [ -f "eas.json" ] && echo "eas.json encontrado" || echo "eas.json NO encontrado"
-          [ -f "app.json" ] && echo "app.json encontrado" || echo "app.json NO encontrado"
+          [ -f "eas.json" ] && echo "✅ eas.json encontrado" || echo "⚠️ eas.json NO encontrado"
+          [ -f "app.json" ] && echo "✅ app.json encontrado" || echo "⚠️ app.json NO encontrado"
+          [ -f "package.json" ] && echo "✅ package.json encontrado" || echo "❌ package.json NO encontrado"
 
-      - name: 🔐 Autenticar con EAS usando variable de entorno
+      - name: 🔐 Autenticar con EAS
         working-directory: ./GeoTrack
+        env:
+          EXPO_TOKEN: ${{ secrets.EAS_TOKEN }}
         run: |
-          # Usar EXPO_TOKEN en lugar de --token flag
-          echo "=== Autenticando con EAS ==="
-          EXPO_TOKEN=${{ env.EXPO_TOKEN }} npx eas whoami
+          echo "=== Verificando autenticación con EAS ==="
+          eas whoami
 
       - name: 🌐 Publicar en EAS
         id: publish
@@ -103,6 +103,34 @@ jobs:
         run: |
           echo "=== Verificando autenticación ==="
           eas whoami
+          
+          echo "=== Verificando si existe eas.json ==="
+          if [ ! -f "eas.json" ]; then
+            echo "⚠️  eas.json no encontrado, creando configuración básica..."
+            cat > eas.json << 'EOF'
+{
+  "cli": {
+    "version": ">= 6.0.0"
+  },
+  "build": {
+    "development": {
+      "developmentClient": true,
+      "distribution": "internal"
+    },
+    "preview": {
+      "distribution": "internal"
+    },
+    "production": {
+      "distribution": "store"
+    }
+  },
+  "submit": {
+    "production": {}
+  }
+}
+EOF
+            echo "✅ eas.json creado"
+          fi
           
           echo "=== Ejecutando EAS Update ==="
           eas update --auto --non-interactive
