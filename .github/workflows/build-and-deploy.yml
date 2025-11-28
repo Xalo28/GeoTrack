@@ -59,18 +59,6 @@ jobs:
           node-version: '20'
           cache: npm
 
-      - name: 🔍 DEBUG - Verificar secret EAS_TOKEN
-        run: |
-          echo "=== Verificando secret EAS_TOKEN ==="
-          if [ -n "${{ secrets.EAS_TOKEN }}" ]; then
-            echo "✅ EAS_TOKEN EXISTE en los secrets"
-            echo "Longitud del token: ${{ secrets.EAS_TOKEN | length }}"
-            echo "Primeros 5 caracteres: ${{ secrets.EAS_TOKEN | slice: 0, 5 }}..."
-          else
-            echo "❌ EAS_TOKEN NO EXISTE en los secrets"
-            echo "Por favor, verifica que el secret esté configurado correctamente en GitHub"
-          fi
-
       - name: 📦 Instalar dependencias y EAS CLI
         working-directory: ./GeoTrack
         run: |
@@ -95,37 +83,25 @@ jobs:
           [ -f "eas.json" ] && echo "✅ eas.json encontrado" || echo "❌ eas.json NO encontrado"
           [ -f "app.json" ] && echo "✅ app.json encontrado" || echo "❌ app.json NO encontrado"
 
-      - name: 🔐 Autenticar con EAS (Método 1 - Variable de entorno)
+      - name: 🔐 Autenticar con EAS
         working-directory: ./GeoTrack
         env:
           EXPO_TOKEN: ${{ secrets.EAS_TOKEN }}
         run: |
-          echo "=== Método 1 - Autenticando con variable de entorno ==="
-          echo "Longitud de EXPO_TOKEN: ${#EXPO_TOKEN}"
-          eas whoami || echo "Método 1 falló"
-
-      - name: 🔐 Autenticar con EAS (Método 2 - Usando --token)
-        working-directory: ./GeoTrack
-        run: |
-          echo "=== Método 2 - Autenticando con --token ==="
-          eas whoami --token "${{ secrets.EAS_TOKEN }}" || echo "Método 2 falló"
-
-      - name: 🔐 Autenticar con EAS (Método 3 - Config file)
-        working-directory: ./GeoTrack
-        run: |
-          echo "=== Método 3 - Creando archivo de configuración ==="
-          # Crear directorio .expo si no existe
-          mkdir -p ~/.expo
-          # Crear archivo de estado con el token
-          echo "{\"auth\": {\"sessionSecret\": \"${{ secrets.EAS_TOKEN }}\"}}" > ~/.expo/state.json
-          eas whoami || echo "Método 3 falló"
+          echo "=== Autenticando con EAS ==="
+          echo "Longitud del token: ${#EXPO_TOKEN}"
+          eas whoami
 
       - name: 🌐 Publicar en EAS
         working-directory: ./GeoTrack
+        env:
+          EXPO_TOKEN: ${{ secrets.EAS_TOKEN }}
         run: |
-          echo "=== Publicando en EAS ==="
-          # Usar el método que funcione
-          eas update --auto --non-interactive --token "${{ secrets.EAS_TOKEN }}"
+          echo "=== Verificando autenticación ==="
+          eas whoami
+          
+          echo "=== Ejecutando EAS Update ==="
+          eas update --auto --non-interactive
 
       - name: 🔔 Notificar webhook
         uses: muhfaris/request-action@v0.1.2
