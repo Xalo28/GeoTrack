@@ -12,7 +12,9 @@ jobs:
         with:
           node-version: '18'
       - run: npm ci
+      - name: Install EAS CLI
+        run: npm install -g eas-cli
       - name: Build Android APK
-        run: npx @expo/eas-cli build --platform android --profile preview --non-interactive
+        run: eas build --platform android --profile preview --non-interactive
         env:
           EXPO_TOKEN: ${{ secrets.EAS_TOKEN }}
