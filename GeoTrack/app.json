@@ -13,17 +13,34 @@
       "backgroundColor": "#ffffff"
     },
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "infoPlist": {
+        "NSCameraUsageDescription": "Allow $(PRODUCT_NAME) to access your camera",
+        "ITSAppUsesNonExemptEncryption": false
+      },
+      "bundleIdentifier": "com.xalo28.GeoTrack"
     },
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#ffffff"
       },
-      "edgeToEdgeEnabled": true
+      "edgeToEdgeEnabled": true,
+      "permissions": [
+        "android.permission.CAMERA"
+      ],
+      "package": "com.xalo28.GeoTrack"
     },
     "web": {
       "favicon": "./assets/favicon.png"
+    },
+    "plugins": [
+      "react-native-vision-camera"
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "6c53bed3-6fa8-42e5-adab-93b6a8cb3020"
+      }
     }
   }
 }

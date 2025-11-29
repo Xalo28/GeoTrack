@@ -28,8 +28,14 @@ jobs:
           eas-version: latest
           token: ${{ secrets.EAS_TOKEN }}
 
+      - name: Login to EAS
+        run: eas login --token ${{ secrets.EAS_TOKEN }}
+
+      - name: Verify authentication
+        run: eas whoami
+
       - name: Build Android APK
         run: eas build --platform android --profile preview --non-interactive --wait
 
-      - name: Build Status
-        run: eas build:list --limit 5
+      - name: Show build status
+        run: eas build:list --limit 3
