@@ -2,8 +2,6 @@ name: EAS Build
 on:
   push:
     branches: [ feature/unit-test ]
-  pull_request:
-    branches: [ feature/unit-test ]
 
 jobs:
   build:
@@ -18,7 +16,7 @@ jobs:
           
       - run: npm ci
       
-      - name: Build Android with EAS
-        run: npx @expo/eas-cli build --platform android --profile preview --non-interactive --wait
-        env:
-          EXPO_TOKEN: ${{ secrets.EAS_TOKEN }}
+      - name: Build with EAS using token
+        run: |
+          npx @expo/eas-cli@latest whoami --token "${{ secrets.EAS_TOKEN }}"
+          npx @expo/eas-cli@latest build --platform android --profile preview --non-interactive --token "${{ secrets.EAS_TOKEN }}"
