@@ -1,41 +1,24 @@
 name: EAS Build
 on:
   push:
-    branches: [ main, develop ]
+    branches: [ feature/unit-test ]
   pull_request:
-    branches: [ main ]
+    branches: [ feature/unit-test ]
 
 jobs:
   build:
-    name: Build with EAS
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
+      - uses: actions/checkout@v4
+      
+      - uses: actions/setup-node@v4
         with:
           node-version: '18'
           cache: 'npm'
-
-      - name: Install dependencies
-        run: npm ci
-
-      - name: Setup EAS
-        uses: expo/expo-github-action@v8
-        with:
-          eas-version: latest
-          token: ${{ secrets.EAS_TOKEN }}
-
-      - name: Login to EAS
-        run: eas login --token ${{ secrets.EAS_TOKEN }}
-
-      - name: Verify authentication
-        run: eas whoami
-
-      - name: Build Android APK
-        run: eas build --platform android --profile preview --non-interactive --wait
-
-      - name: Show build status
-        run: eas build:list --limit 3
+          
+      - run: npm ci
+      
+      - name: Build Android with EAS
+        run: npx @expo/eas-cli build --platform android --profile preview --non-interactive --wait
+        env:
+          EXPO_TOKEN: ${{ secrets.EAS_TOKEN }}
