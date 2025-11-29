@@ -17,12 +17,14 @@ jobs:
           cache: 'npm'
 
       - name: 📦 Install dependencies
+        working-directory: ./GeoTrack
         run: npm ci
 
       - name: 🔧 Install EAS CLI
         run: npm install -g eas-cli
 
       - name: 🏗️ Build Android APK
+        working-directory: ./GeoTrack
         run: eas build --platform android --profile preview --non-interactive
         env:
           EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
