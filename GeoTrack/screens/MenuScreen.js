@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Alert, Image } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Alert } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import * as WebBrowser from 'expo-web-browser';
 import { makeRedirectUri } from 'expo-auth-session';
@@ -15,17 +15,15 @@ const MenuScreen = ({ navigation }) => {
     try {
       const returnTo = makeRedirectUri({ scheme: 'geotrack' });
       const logoutUrl = `https://${AUTH0_DOMAIN}/v2/logout?client_id=${AUTH0_CLIENT_ID}&returnTo=${encodeURIComponent(returnTo)}`;
+      
+      // Abrimos navegador para limpiar cookie de Auth0
       await WebBrowser.openAuthSessionAsync(logoutUrl, returnTo);
-      navigation.reset({
-        index: 0,
-        routes: [{ name: 'Login' }],
-      });
+      
+      // Reseteamos navegación al Login
+      navigation.reset({ index: 0, routes: [{ name: 'Login' }] });
     } catch (e) {
-      console.log('Error al salir:', e);
-      navigation.reset({
-        index: 0,
-        routes: [{ name: 'Login' }],
-      });
+      // Si falla, forzamos salida local
+      navigation.reset({ index: 0, routes: [{ name: 'Login' }] });
     }
   };
 
@@ -55,7 +53,7 @@ const MenuScreen = ({ navigation }) => {
       <Header navigation={navigation} title="MENÚ" showBack={true} />
       
       <ScrollView contentContainerStyle={styles.content}>
-        {/* Perfil Header */}
+        {/* Header del Perfil */}
         <View style={styles.profileHeader}>
           <View style={styles.avatarContainer}>
             <Text style={styles.avatarText}>JL</Text>
@@ -67,19 +65,42 @@ const MenuScreen = ({ navigation }) => {
           </View>
         </View>
 
+        {/* Sección Cuenta */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Cuenta</Text>
-          <MenuItem icon="person-outline" title="Mi Perfil" onPress={() => {}} />
-          <MenuItem icon="notifications-outline" title="Notificaciones" onPress={() => {}} />
-          <MenuItem icon="shield-checkmark-outline" title="Seguridad" onPress={() => {}} />
+          <MenuItem 
+            icon="person-outline" 
+            title="Mi Perfil" 
+            onPress={() => navigation.navigate('Profile')} 
+          />
+          <MenuItem 
+            icon="notifications-outline" 
+            title="Notificaciones" 
+            onPress={() => navigation.navigate('Notifications')} 
+          />
+          <MenuItem 
+            icon="shield-checkmark-outline" 
+            title="Seguridad" 
+            onPress={() => navigation.navigate('Security')} 
+          />
         </View>
 
+        {/* Sección Aplicación */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Aplicación</Text>
-          <MenuItem icon="settings-outline" title="Configuración" onPress={() => {}} />
-          <MenuItem icon="help-circle-outline" title="Ayuda y Soporte" onPress={() => {}} />
+          <MenuItem 
+            icon="settings-outline" 
+            title="Configuración" 
+            onPress={() => navigation.navigate('Settings')} 
+          />
+          <MenuItem 
+            icon="help-circle-outline" 
+            title="Ayuda y Soporte" 
+            onPress={() => navigation.navigate('Help')} 
+          />
         </View>
 
+        {/* Botón Cerrar Sesión */}
         <View style={styles.logoutContainer}>
           <TouchableOpacity style={styles.logoutButton} onPress={confirmLogout}>
             <Ionicons name="log-out-outline" size={24} color="#FFF" />
@@ -94,122 +115,49 @@ const MenuScreen = ({ navigation }) => {
 };
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#F9F9F9',
-  },
-  content: {
-    padding: 20,
-  },
+  container: { flex: 1, backgroundColor: '#F9F9F9' },
+  content: { padding: 20 },
   profileHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#FFF',
-    padding: 20,
-    borderRadius: 15,
-    marginBottom: 25,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 5,
-    elevation: 3,
+    flexDirection: 'row', alignItems: 'center', backgroundColor: '#FFF',
+    padding: 20, borderRadius: 15, marginBottom: 25,
+    shadowColor: '#000', shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05, shadowRadius: 5, elevation: 3,
   },
   avatarContainer: {
-    width: 60,
-    height: 60,
-    borderRadius: 30,
-    backgroundColor: '#5CE1E6',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: 15,
+    width: 60, height: 60, borderRadius: 30, backgroundColor: '#5CE1E6',
+    justifyContent: 'center', alignItems: 'center', marginRight: 15,
   },
-  avatarText: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: '#FFF',
-  },
-  profileInfo: {
-    flex: 1,
-  },
-  profileName: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#333',
-  },
-  profileRole: {
-    fontSize: 14,
-    color: '#666',
-    marginBottom: 2,
-  },
-  profileId: {
-    fontSize: 12,
-    color: '#999',
-  },
-  section: {
-    marginBottom: 25,
-  },
+  avatarText: { fontSize: 24, fontWeight: 'bold', color: '#FFF' },
+  profileInfo: { flex: 1 },
+  profileName: { fontSize: 18, fontWeight: 'bold', color: '#333' },
+  profileRole: { fontSize: 14, color: '#666', marginBottom: 2 },
+  profileId: { fontSize: 12, color: '#999' },
+  section: { marginBottom: 25 },
   sectionTitle: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#999',
-    marginBottom: 10,
-    marginLeft: 5,
-    textTransform: 'uppercase',
+    fontSize: 14, fontWeight: '600', color: '#999',
+    marginBottom: 10, marginLeft: 5, textTransform: 'uppercase',
   },
   menuItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#FFF',
-    padding: 15,
-    borderRadius: 12,
-    marginBottom: 10,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.03,
-    shadowRadius: 2,
-    elevation: 1,
+    flexDirection: 'row', alignItems: 'center', backgroundColor: '#FFF',
+    padding: 15, borderRadius: 12, marginBottom: 10,
+    shadowColor: '#000', shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.03, shadowRadius: 2, elevation: 1,
   },
   iconContainer: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: 15,
+    width: 36, height: 36, borderRadius: 18,
+    justifyContent: 'center', alignItems: 'center', marginRight: 15,
   },
-  menuItemText: {
-    flex: 1,
-    fontSize: 16,
-    fontWeight: '500',
-  },
-  logoutContainer: {
-    marginTop: 10,
-  },
+  menuItemText: { flex: 1, fontSize: 16, fontWeight: '500' },
+  logoutContainer: { marginTop: 10 },
   logoutButton: {
-    flexDirection: 'row',
-    backgroundColor: '#FF4444',
-    padding: 16,
-    borderRadius: 12,
-    justifyContent: 'center',
-    alignItems: 'center',
-    shadowColor: '#FF4444',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 5,
-    elevation: 5,
+    flexDirection: 'row', backgroundColor: '#FF4444',
+    padding: 16, borderRadius: 12, justifyContent: 'center',
+    alignItems: 'center', shadowColor: '#FF4444',
+    shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.3,
+    shadowRadius: 5, elevation: 5,
   },
-  logoutText: {
-    color: '#FFF',
-    fontSize: 16,
-    fontWeight: 'bold',
-    marginLeft: 10,
-  },
-  version: {
-    textAlign: 'center',
-    color: '#CCC',
-    marginTop: 30,
-    fontSize: 12,
-  },
+  logoutText: { color: '#FFF', fontSize: 16, fontWeight: 'bold', marginLeft: 10 },
+  version: { textAlign: 'center', color: '#CCC', marginTop: 30, fontSize: 12 },
 });
 
 export default MenuScreen;
