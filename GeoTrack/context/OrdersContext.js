@@ -3,8 +3,11 @@ import React, { createContext, useState, useContext } from 'react';
 const OrdersContext = createContext();
 
 export const OrdersProvider = ({ children }) => {
+  // Inicializamos con un estado vacío, pero listo para funcionar
   const [orders, setOrders] = useState([]);
-  const [hasOrders, setHasOrders] = useState(false);
+  
+  // Derivamos hasOrders directamente del array, es más seguro
+  const hasOrders = orders.length > 0;
 
   const addOrder = (newOrder) => {
     const orderWithId = {
@@ -13,16 +16,18 @@ export const OrdersProvider = ({ children }) => {
       date: new Date().toISOString(),
       estado: 'Pendiente',
       productos: newOrder.productos || [
-        'Producto por definir'
+        'Producto estándar',
+        'Paquete frágil'
       ],
       informacionContacto: {
         telefono: newOrder.informacionContacto.telefono,
-        direccion: `${newOrder.informacionContacto.direccion}, ${newOrder.distrito}`
+        direccion: newOrder.distrito 
+          ? `${newOrder.informacionContacto.direccion}, ${newOrder.distrito}`
+          : newOrder.informacionContacto.direccion
       }
     };
     
     setOrders(prevOrders => [orderWithId, ...prevOrders]);
-    setHasOrders(true);
   };
 
   const markAsDelivered = (orderId) => {
@@ -35,7 +40,6 @@ export const OrdersProvider = ({ children }) => {
 
   const clearOrders = () => {
     setOrders([]);
-    setHasOrders(false);
   };
 
   return (
@@ -45,7 +49,6 @@ export const OrdersProvider = ({ children }) => {
       addOrder,
       markAsDelivered,
       clearOrders,
-      setHasOrders
     }}>
       {children}
     </OrdersContext.Provider>

@@ -1,10 +1,9 @@
 import React, { useEffect } from 'react';
-import { View, StyleSheet, BackHandler, Alert } from 'react-native';
+import { View, StyleSheet, BackHandler } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { useOrders } from '../context/OrdersContext';
 import Header from '../components/Header';
 import StatsCard from '../components/StatsCard';
-import TruckImageSection from '../components/TruckImageSection';
 import ScanButton from '../components/ScanButton';
 import RecentOrders from '../components/RecentOrders';
 import BottomBar from '../components/BottomBar';
@@ -12,26 +11,12 @@ import BottomBar from '../components/BottomBar';
 const PedidosScreen = ({ navigation }) => {
   const { orders } = useOrders();
 
-  const showLogoutAlert = () => {
-    Alert.alert(
-      "Cerrar Sesión",
-      "¿Estás seguro de que quieres cerrar sesión?",
-      [
-        {
-          text: "Cancelar",
-          style: "cancel"
-        },
-        { 
-          text: "Sí", 
-          onPress: () => navigation.replace('Login')
-        }
-      ]
-    );
-  };
-
+  // Manejo del botón físico de atrás en Android
   useEffect(() => {
     const backAction = () => {
-      showLogoutAlert();
+      // Si estamos en la lista de pedidos, ir atrás debería volver al Home
+      // o preguntar si salir, pero lo ideal es ir al Home
+      navigation.navigate('Home');
       return true;
     };
 
@@ -45,23 +30,23 @@ const PedidosScreen = ({ navigation }) => {
 
   const handleScanPress = () => navigation.navigate('ScanPhase1');
   const handleAddPress = () => navigation.navigate('ManualOrder');
-  const handleMenuPress = () => console.log('Menu pressed');
+  const handleMenuPress = () => navigation.navigate('Menu'); // <--- Conectado
 
   return (
     <View style={styles.container}>
       <StatusBar style="dark" />
       
-      {/* Header y componentes fijos */}
-      <Header navigation={navigation} onBackPress={showLogoutAlert} />
-      <StatsCard /> 
-      <ScanButton navigation={navigation} />
+      <Header navigation={navigation} title="MIS PEDIDOS" showBack={true} />
       
-      {/* RecentOrders con su propio scroll interno */}
-      <View style={styles.ordersContainer}>
-        <RecentOrders orders={orders} />
+      <View style={styles.content}>
+        <StatsCard /> 
+        <ScanButton navigation={navigation} />
+        
+        <View style={styles.ordersContainer}>
+          <RecentOrders orders={orders} />
+        </View>
       </View>
 
-      {/* BottomBar fijo */}
       <BottomBar 
         onScanPress={handleScanPress}
         onAddPress={handleAddPress}
@@ -75,10 +60,15 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#ffffff',
-    paddingHorizontal: 10,
+  },
+  content: {
+    flex: 1,
+    paddingHorizontal: 20,
+    paddingTop: 10,
   },
   ordersContainer: {
-    flex: 1, // Ocupa todo el espacio disponible entre el ScanButton y el BottomBar
+    flex: 1,
+    marginTop: 10,
   },
 });
 

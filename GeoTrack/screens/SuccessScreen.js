@@ -10,31 +10,25 @@ import SuccessIcon from '../components/SuccessIcon';
 const SuccessScreen = ({ navigation, route }) => {
   const { addOrder } = useOrders();
   
-  // Manejo seguro de route.params
-  const scannedCode = route?.params?.scannedCode || 'PED-' + Math.floor(100000 + Math.random() * 900000);
-
-  // Estructura de datos que coincide con lo que espera RecentOrders
-  const orderData = {
-    id: Date.now().toString(), // ID único
-    cliente: "Maria García",
-    numeroPedido: scannedCode, // Usado en: Código: {order.numeroPedido}
-    estado: 'Pendiente', // Usado en el badge de estado
+  // Datos simulados o recibidos del escáner
+  const scannedData = route?.params?.scannedData || 'QR-UNKNOWN';
+  
+  const newOrderData = {
+    numeroPedido: scannedData,
+    cliente: "Cliente Escaneado",
     informacionContacto: {
-      direccion: 'Av. Los Páñones 123, San Juan de Lurigancho', // Usado en: {order.informacionContacto.direccion}
-      telefono: '+51 987 654 321'
+      direccion: 'Dirección detectada por GPS',
+      telefono: '999-888-777'
     },
-    // Propiedades adicionales que podrían ser usadas en el modal de detalles
-    celular: "+51 987 654 321",
-    codigo: scannedCode,
-    productos: [
-      'Logros Del 195 13',
-      'Mesas Instituciones', 
-      'Funda protectora'
-    ]
+    distrito: 'San Isidro',
+    productos: ['Caja Registrada', 'Documentos']
   };
 
   const handleAccept = () => {
-    addOrder(orderData);
+    // 1. Guardar el pedido escaneado en el estado global
+    addOrder(newOrderData);
+    
+    // 2. Ir a la lista de pedidos
     navigation.navigate('Pedidos');
   };
 
@@ -44,32 +38,33 @@ const SuccessScreen = ({ navigation, route }) => {
       
       <ScanHeader 
         navigation={navigation}
-        phaseTitle="PEDIDO REGISTRADO"
-        instruction=""
-        showInstruction={false}
+        phaseTitle="ÉXITO"
+        instruction="Código procesado correctamente"
+        showInstruction={true}
       />
       
       <View style={styles.content}>
         <SuccessIcon size={120} checkmarkSize={60} />
         
-        <Text style={styles.successTitle}>INGRESO DE PEDIDO EXITOSO</Text>
+        <Text style={styles.successTitle}>PEDIDO REGISTRADO</Text>
         
-        <View style={styles.orderInfo}>
-          <Text style={styles.orderText}>Pedido registrado correctamente</Text>
-          <View style={styles.orderDetails}>
-            <Text style={styles.orderCode}>Cliente: {orderData.cliente}</Text>
-            <Text style={styles.orderCode}>Dirección: {orderData.informacionContacto.direccion}</Text>
-            <Text style={styles.orderCode}>Celular: {orderData.celular}</Text>
-            <Text style={styles.orderCode}>Código: {orderData.numeroPedido}</Text>
-          </View>
+        <View style={styles.infoCard}>
+          <Text style={styles.label}>Código Detectado:</Text>
+          <Text style={styles.value}>{scannedData}</Text>
+          
+          <View style={styles.divider} />
+          
+          <Text style={styles.label}>Cliente:</Text>
+          <Text style={styles.value}>{newOrderData.cliente}</Text>
         </View>
+
+        <View style={{ flex: 1 }} />
 
         <ScanControls 
           isScanning={false}
           onStartScanning={handleAccept}
-          buttonText="ACEPTAR"
-          buttonStyle={styles.acceptButton}
-          textStyle={styles.acceptButtonText}
+          buttonText="FINALIZAR Y GUARDAR"
+          buttonStyle={styles.finishButton}
         />
       </View>
     </View>
@@ -77,59 +72,26 @@ const SuccessScreen = ({ navigation, route }) => {
 };
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#ffffff',
-  },
-  content: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: 30,
-  },
+  container: { flex: 1, backgroundColor: '#ffffff' },
+  content: { flex: 1, padding: 30, alignItems: 'center' },
   successTitle: {
     fontSize: 24,
     fontWeight: 'bold',
     color: '#27ae60',
-    textAlign: 'center',
-    marginBottom: 40,
-    marginTop: 10,
+    marginVertical: 20,
   },
-  orderInfo: {
-    backgroundColor: '#f8f9fa',
-    padding: 25,
-    borderRadius: 15,
-    alignItems: 'center',
-    marginBottom: 50,
-    borderWidth: 2,
-    borderColor: '#000000',
-    minWidth: 300,
-  },
-  orderText: {
-    fontSize: 18,
-    color: '#000000',
-    marginBottom: 20,
-    textAlign: 'center',
-    fontWeight: 'bold',
-  },
-  orderDetails: {
+  infoCard: {
     width: '100%',
+    backgroundColor: '#F8F9FA',
+    padding: 20,
+    borderRadius: 15,
+    borderWidth: 1,
+    borderColor: '#E0E0E0',
   },
-  orderCode: {
-    fontSize: 16,
-    color: '#000000',
-    fontWeight: 'bold',
-    opacity: 0.8,
-    marginBottom: 8,
-  },
-  acceptButton: {
-    backgroundColor: '#27ae60',
-    borderWidth: 2,
-    borderColor: '#27ae60',
-  },
-  acceptButtonText: {
-    color: 'white',
-  },
+  label: { fontSize: 14, color: '#666', marginTop: 10 },
+  value: { fontSize: 18, fontWeight: 'bold', color: '#333' },
+  divider: { height: 1, backgroundColor: '#DDD', marginVertical: 10 },
+  finishButton: { backgroundColor: '#5CE1E6', marginTop: 20, width: '100%' },
 });
 
 export default SuccessScreen;

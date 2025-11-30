@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { 
   View, 
   Text, 
@@ -6,7 +6,9 @@ import {
   StatusBar, 
   ScrollView,
   TouchableOpacity,
-  Alert 
+  Alert,
+  KeyboardAvoidingView,
+  Platform
 } from 'react-native';
 import Header from '../components/Header';
 import FormInputWithIcon from '../components/FormInputWithIcon';
@@ -27,19 +29,8 @@ const ManualOrderScreen = ({ navigation }) => {
 
   const [errors, setErrors] = useState({});
 
-  // Efecto para limpiar errores cuando el usuario empiece a escribir
-  useEffect(() => {
-    // Este efecto se ejecuta cuando cambia el formData
-  }, [formData]);
-
   const handleInputChange = (field, value) => {
-    // Actualizar el estado del formulario
-    setFormData(prev => ({
-      ...prev,
-      [field]: value
-    }));
-    
-    // Limpiar error inmediatamente
+    setFormData(prev => ({ ...prev, [field]: value }));
     if (errors[field]) {
       setErrors(prev => {
         const newErrors = { ...prev };
@@ -53,248 +44,155 @@ const ManualOrderScreen = ({ navigation }) => {
     let isValid = true;
     let newErrors = {};
 
-    if (!formData.clientName.trim()) {
-      newErrors.clientName = 'El nombre es requerido';
-      isValid = false;
-    }
-
-    if (!formData.phone.trim()) {
-      newErrors.phone = 'El teléfono es requerido';
-      isValid = false;
-    }
-
-    if (!formData.district.trim()) {
-      newErrors.district = 'El distrito es requerido';
-      isValid = false;
-    }
-
-    if (!formData.address.trim()) {
-      newErrors.address = 'La dirección es requerida';
-      isValid = false;
-    }
+    if (!formData.clientName.trim()) { newErrors.clientName = 'Requerido'; isValid = false; }
+    if (!formData.phone.trim()) { newErrors.phone = 'Requerido'; isValid = false; }
+    if (!formData.district.trim()) { newErrors.district = 'Requerido'; isValid = false; }
+    if (!formData.address.trim()) { newErrors.address = 'Requerido'; isValid = false; }
 
     setErrors(newErrors);
     return isValid;
   };
 
-  const handleCancel = () => {
-    Alert.alert(
-      "Cancelar",
-      "¿Estás seguro de que quieres cancelar el ingreso del pedido?",
-      [
-        { text: "NO", style: "cancel" },
-        { 
-          text: "SÍ", 
-          onPress: () => navigation.goBack()
-        }
-      ]
-    );
-  };
-
   const handleAccept = () => {
-    // Agregamos console.log para debuggear
-    console.log('Button pressed');
-    console.log('Form data:', formData);
-
     if (validateForm()) {
-      console.log('Form is valid');
-      
+      // 1. Crear objeto de pedido
       const newOrder = {
-        cliente: formData.clientName.trim(),
-        numeroPedido: Date.now().toString(),
+        numeroPedido: formData.orderId || `MAN-${Date.now().toString().slice(-4)}`,
+        cliente: formData.clientName,
+        distrito: formData.district,
         informacionContacto: {
-          telefono: formData.phone.trim(),
-          direccion: formData.address.trim()
+          telefono: formData.phone,
+          direccion: formData.address
         },
-        distrito: formData.district.trim()
+        productos: ['Entrega Manual', 'Paquete Estándar']
       };
 
-      try {
-        addOrder(newOrder);
-        console.log('Order added successfully');
-        
-        navigation.navigate('Pedidos');
-      } catch (error) {
-        console.error('Error adding order:', error);
-        Alert.alert(
-          "Error",
-          "No se pudo registrar el pedido. Por favor intente nuevamente."
-        );
-      }
+      // 2. Guardar en Contexto
+      addOrder(newOrder);
+
+      // 3. Feedback y Navegación
+      Alert.alert("Éxito", "Pedido registrado correctamente", [
+        { text: "OK", onPress: () => navigation.navigate('Pedidos') }
+      ]);
     } else {
-      console.log('Form validation failed', errors);
-      Alert.alert(
-        "Formulario incompleto",
-        "Por favor complete todos los campos requeridos."
-      );
+      Alert.alert("Atención", "Por favor completa los campos marcados");
     }
   };
-
-  const handleLogout = () => {
-    Alert.alert(
-      "Cerrar Sesión",
-      "¿Estás seguro de que quieres cerrar sesión?",
-      [
-        { text: "CANCELAR", style: "cancel" },
-        { 
-          text: "SÍ", 
-          onPress: () => navigation.navigate('Login')
-        }
-      ]
-    );
-  };
-
-  const handleScanPress = () => navigation.navigate('ScanPhase1');
-  const handleAddPress = () => console.log('Add new route pressed');
-  const handleMenuPress = () => console.log('Menu pressed');
 
   return (
     <View style={styles.container}>
       <StatusBar barStyle="dark-content" backgroundColor="#FFFFFF" />
-      
-      <Header 
-        navigation={navigation}
-        onBackPress={handleLogout}
-        title="INICIO"
-        subtitle="Juanito Lopez"
-      />
+      <Header navigation={navigation} title="NUEVO PEDIDO" showBack={true} />
 
-      <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
-        <Text style={styles.title}>INGRESE PEDIDO MANUALMENTE</Text>
-        
-        <View style={styles.formContainer}>
-          <FormInputWithIcon
-            label="ID del Pedido"
-            value={formData.orderId}
-            onChangeText={(value) => handleInputChange('orderId', value.toUpperCase())}
-            placeholder="Ej: PED001"
-            iconName="document-text"
-            error={errors.orderId}
-            autoCapitalize="characters"
-          />
+      <KeyboardAvoidingView 
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
+        style={{ flex: 1 }}
+      >
+        <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
+          <Text style={styles.title}>Ingrese datos del pedido</Text>
           
-          <FormInputWithIcon
-            label="Nombre del cliente"
-            value={formData.clientName}
-            onChangeText={(value) => handleInputChange('clientName', value)}
-            placeholder="Ingrese el nombre completo"
-            iconName="person"
-            error={errors.clientName}
-            autoCapitalize="words"
-          />
-          
-          <FormInputWithIcon
-            label="Teléfono"
-            value={formData.phone}
-            onChangeText={(value) => {
-              const cleanValue = value.replace(/[^0-9]/g, '');
-              if (cleanValue.length <= 9) {
-                handleInputChange('phone', cleanValue);
-              }
-            }}
-            placeholder="Ej: 987654321"
-            iconName="call"
-            error={errors.phone}
-            keyboardType="numeric"
-          />
-          
-          <DistrictSelector
-            label="Distrito"
-            value={formData.district}
-            onSelect={(value) => handleInputChange('district', value)}
-            error={errors.district}
-          />
-          
-          <FormInputWithIcon
-            label="Dirección"
-            value={formData.address}
-            onChangeText={(value) => handleInputChange('address', value)}
-            placeholder="Ingrese la dirección completa"
-            iconName="location"
-            error={errors.address}
-            autoCapitalize="words"
-          />
-        </View>
+          <View style={styles.formContainer}>
+            <FormInputWithIcon
+              label="ID Pedido (Opcional)"
+              value={formData.orderId}
+              onChangeText={(v) => handleInputChange('orderId', v)}
+              placeholder="Ej: PED-001"
+              iconName="barcode-outline"
+            />
+            
+            <FormInputWithIcon
+              label="Cliente *"
+              value={formData.clientName}
+              onChangeText={(v) => handleInputChange('clientName', v)}
+              placeholder="Nombre completo"
+              iconName="person-outline"
+              error={errors.clientName}
+            />
+            
+            <FormInputWithIcon
+              label="Teléfono *"
+              value={formData.phone}
+              onChangeText={(v) => handleInputChange('phone', v)}
+              placeholder="Ej: 999 999 999"
+              iconName="call-outline"
+              keyboardType="phone-pad"
+              error={errors.phone}
+            />
+            
+            <DistrictSelector
+              label="Distrito *"
+              value={formData.district}
+              onSelect={(v) => handleInputChange('district', v)}
+              error={errors.district}
+            />
+            
+            <FormInputWithIcon
+              label="Dirección *"
+              value={formData.address}
+              onChangeText={(v) => handleInputChange('address', v)}
+              placeholder="Av. Principal 123"
+              iconName="location-outline"
+              error={errors.address}
+            />
+          </View>
 
-        <View style={styles.buttonContainer}>
-          <TouchableOpacity 
-            style={styles.cancelButton} 
-            onPress={handleCancel}
-          >
-            <Text style={styles.cancelButtonText}>CANCELAR</Text>
-          </TouchableOpacity>
+          <View style={styles.buttonContainer}>
+            <TouchableOpacity 
+              style={[styles.actionButton, styles.cancelButton]} 
+              onPress={() => navigation.goBack()}
+            >
+              <Text style={styles.cancelText}>CANCELAR</Text>
+            </TouchableOpacity>
+            
+            <TouchableOpacity 
+              style={[styles.actionButton, styles.acceptButton]} 
+              onPress={handleAccept}
+            >
+              <Text style={styles.acceptText}>GUARDAR</Text>
+            </TouchableOpacity>
+          </View>
           
-          <TouchableOpacity 
-            style={styles.acceptButton} 
-            onPress={handleAccept}
-            activeOpacity={0.7}
-          >
-            <Text style={styles.acceptButtonText}>Aceptar</Text>
-          </TouchableOpacity>
-        </View>
-      </ScrollView>
+          {/* Espacio extra para el teclado */}
+          <View style={{ height: 100 }} />
+        </ScrollView>
+      </KeyboardAvoidingView>
 
       <BottomBar 
-        onScanPress={handleScanPress}
-        onAddPress={handleAddPress}
-        onMenuPress={handleMenuPress}
+        onScanPress={() => navigation.navigate('ScanPhase1')}
+        onAddPress={() => {}} // Ya estamos aquí
+        onMenuPress={() => navigation.navigate('Menu')}
       />
     </View>
   );
 };
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#FFFFFF',
-  },
-  content: {
-    flex: 1,
-    paddingHorizontal: 20,
-  },
+  container: { flex: 1, backgroundColor: '#FFFFFF' },
+  content: { flex: 1, paddingHorizontal: 20 },
   title: {
-    fontSize: 24,
+    fontSize: 20,
     fontWeight: 'bold',
-    color: '#000000',
+    color: '#333',
     textAlign: 'center',
-    marginTop: 20,
-    marginBottom: 30,
+    marginVertical: 20,
   },
-  formContainer: {
-    marginBottom: 30,
-  },
+  formContainer: { marginBottom: 20 },
   buttonContainer: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginBottom: 30,
-    paddingHorizontal: 10,
+    marginBottom: 20,
   },
-  cancelButton: {
-    backgroundColor: '#FF4444',
-    paddingVertical: 8,
-    paddingHorizontal: 20,
-    borderRadius: 6,
-    flex: 0.45,
+  actionButton: {
+    flex: 0.48,
+    paddingVertical: 15,
+    borderRadius: 10,
     alignItems: 'center',
+    justifyContent: 'center',
   },
-  cancelButtonText: {
-    color: '#FFFFFF',
-    fontSize: 14,
-    fontWeight: 'bold',
-  },
-  acceptButton: {
-    backgroundColor: '#4CAF50',
-    paddingVertical: 8,
-    paddingHorizontal: 20,
-    borderRadius: 6,
-    flex: 0.45,
-    alignItems: 'center',
-  },
-  acceptButtonText: {
-    color: '#FFFFFF',
-    fontSize: 14,
-    fontWeight: 'bold',
-  },
+  cancelButton: { backgroundColor: '#FFEDED', borderWidth: 1, borderColor: '#FF4444' },
+  acceptButton: { backgroundColor: '#5CE1E6', shadowColor: '#000', shadowOffset: {width: 0, height: 2}, shadowOpacity: 0.2, shadowRadius: 3, elevation: 3 },
+  cancelText: { color: '#FF4444', fontWeight: 'bold' },
+  acceptText: { color: '#FFF', fontWeight: 'bold' },
 });
 
 export default ManualOrderScreen;

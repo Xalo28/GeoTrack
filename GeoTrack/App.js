@@ -11,6 +11,7 @@ import ScanPhase2Screen from './screens/ScanPhase2Screen';
 import SuccessScreen from './screens/SuccessScreen';
 import ManualOrderScreen from './screens/ManualOrderScreen';
 import OrderSuccessScreen from './screens/OrderSuccessScreen';
+import MenuScreen from './screens/MenuScreen'; // <--- IMPORTANTE
 
 const Stack = createStackNavigator();
 
@@ -20,9 +21,7 @@ export default function App() {
       <NavigationContainer>
         <Stack.Navigator 
           initialRouteName="Login"
-          screenOptions={{
-            headerShown: false,
-          }}
+          screenOptions={{ headerShown: false }}
         >
           <Stack.Screen name="Login" component={LoginScreen} />
           <Stack.Screen name="Home" component={HomeScreen} />
@@ -32,6 +31,7 @@ export default function App() {
           <Stack.Screen name="Success" component={SuccessScreen} />
           <Stack.Screen name="ManualOrder" component={ManualOrderScreen} />
           <Stack.Screen name="OrderSuccess" component={OrderSuccessScreen} />
+          <Stack.Screen name="Menu" component={MenuScreen} /> 
         </Stack.Navigator>
       </NavigationContainer>
     </OrdersProvider>
