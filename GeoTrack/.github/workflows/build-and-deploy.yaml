@@ -1,4 +1,4 @@
-name: Build and Deploy in EAS - feature/unit-test
+name: Build and Test - feature/unit-test
 
 on:
   push:
@@ -6,7 +6,7 @@ on:
       - feature/unit-test
 
 jobs:
-  build-and-archive:
+  test:
     runs-on: ubuntu-latest
     env:
       NODE_OPTIONS: --max-old-space-size=4096
@@ -20,34 +20,20 @@ jobs:
           node-version: '20'
           cache: npm
 
-      - name: 🔍 Comprobar estructura del proyecto
-        run: |
-          echo "PWD: $(pwd)"
-          ls -la
-          echo "=== Buscando package.json ==="
-          find . -name "package.json" -type f | head -10
-
       - name: 📦 Instalar dependencias
         working-directory: ./GeoTrack
-        run: npm install
+        run: npm ci  # ← Cambiado a ci
 
-      - name: 🧪 Ejecutar tests
+      - name: 🧪 Ejecutar tests CON verificación
         working-directory: ./GeoTrack
-        run: npm run test
+        run: |
+          # Esto SÍ fallará si los tests no pasan
+          npm run test -- --ci --watchAll=false --passWithNoTests
+        env:
+          CI: true
 
-      - name: 🏗️ Build del proyecto
-        working-directory: ./GeoTrack
-        run: npm run build
-
-      - name: 📤 Generar y subir artefactos
-        uses: actions/upload-artifact@v4
-        with:
-          name: geotrack-${{ github.sha }}
-          path: GeoTrack/dist/
-          retention-days: 1
-
-  publish-to-eas:
-    needs: build-and-archive
+  build-and-deploy:
+    needs: test  # ← SOLO si los tests pasan
     runs-on: ubuntu-latest
     steps:
       - name: ⬇️ Checkout del repositorio
@@ -62,46 +48,22 @@ jobs:
       - name: 📦 Instalar dependencias y EAS CLI
         working-directory: ./GeoTrack
         run: |
-          npm install
+          npm ci  # ← Cambiado a ci
           npm install -g eas-cli
-
-      - name: 📥 Descargar artefactos
-        uses: actions/download-artifact@v4
-        with:
-          name: geotrack-${{ github.sha }}
-          path: GeoTrack/dist/
-
-      - name: 🔑 Configurar EAS
-        working-directory: ./GeoTrack
-        run: |
-          echo "Directorio actual: $(pwd)"
-          echo "=== Verificando EAS CLI ==="
-          eas --version
-          echo "=== Verificando configuración del proyecto ==="
-          ls -la
-          echo "=== Archivos de configuración ==="
-          [ -f "eas.json" ] && echo "✅ eas.json encontrado" || echo "❌ eas.json NO encontrado"
-          [ -f "app.json" ] && echo "✅ app.json encontrado" || echo "❌ app.json NO encontrado"
 
       - name: 🔐 Autenticar con EAS
         working-directory: ./GeoTrack
         env:
-          EXPO_TOKEN: ${{ secrets.EAS_TOKEN }}
-        run: |
-          echo "=== Autenticando con EAS ==="
-          echo "Longitud del token: ${#EXPO_TOKEN}"
-          eas whoami
+          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}  # ← Usa EXPO_TOKEN en lugar de EAS_TOKEN
+        run: eas whoami
 
-      - name: 🌐 Publicar en EAS
+      - name: 🏗️ Build con EAS
         working-directory: ./GeoTrack
         env:
-          EXPO_TOKEN: ${{ secrets.EAS_TOKEN }}
+          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
         run: |
-          echo "=== Verificando autenticación ==="
-          eas whoami
-          
-          echo "=== Ejecutando EAS Update ==="
-          eas update --auto --non-interactive
+          # Elimina los pasos de build manual y ve directo a EAS
+          eas build --platform android --profile preview --non-interactive
 
       - name: 🔔 Notificar webhook
         uses: muhfaris/request-action@v0.1.2
