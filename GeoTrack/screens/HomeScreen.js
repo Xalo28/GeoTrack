@@ -1,5 +1,6 @@
-import React, { useEffect } from 'react';
+import React, { useCallback } from 'react';
 import { View, Text, StyleSheet, StatusBar } from 'react-native';
+import { useFocusEffect } from '@react-navigation/native';
 import Header from '../components/Header';  
 import BottomBar from '../components/BottomBar';  
 import { useOrders } from '../context/OrdersContext';
@@ -7,22 +8,20 @@ import { useOrders } from '../context/OrdersContext';
 const HomeScreen = ({ navigation }) => {
   const { hasOrders } = useOrders();
 
-  // Si hay pedidos, redirigir automáticamente a la pantalla de Pedidos
-  useEffect(() => {
-    if (hasOrders) {
-      navigation.replace('Pedidos');
-    }
-  }, [hasOrders, navigation]);
-
-  const handleScanPress = () => navigation.navigate('ScanPhase1');
-  const handleAddPress = () => navigation.navigate('ManualOrder');
-  const handleMenuPress = () => navigation.navigate('Menu'); // <--- Conectado
+  // Verifica si hay pedidos cada vez que entras a esta pantalla
+  useFocusEffect(
+    useCallback(() => {
+      if (hasOrders) {
+        // Redirección automática al Dashboard si hay datos
+        navigation.navigate('Pedidos');
+      }
+    }, [hasOrders, navigation])
+  );
 
   return (
     <View style={styles.container}>
       <StatusBar barStyle="dark-content" backgroundColor="#FFFFFF" />
       
-      {/* En Home, showBack={false} porque es la raíz después del login */}
       <Header 
         navigation={navigation}
         title="INICIO"
@@ -32,13 +31,15 @@ const HomeScreen = ({ navigation }) => {
       <View style={styles.content}>
         <Text style={styles.message}>No hay Rutas</Text>
         <Text style={styles.message}>pendientes...</Text>
-        <Text style={styles.subMessage}>Escanea un código o agrega un pedido para comenzar</Text>
+        <Text style={styles.subMessage}>
+          Usa el botón "+" para agregar o el QR para escanear.
+        </Text>
       </View>
 
       <BottomBar 
-        onScanPress={handleScanPress}
-        onAddPress={handleAddPress}
-        onMenuPress={handleMenuPress}
+        onScanPress={() => navigation.navigate('ScanPhase1')}
+        onAddPress={() => navigation.navigate('ManualOrder')}
+        onMenuPress={() => navigation.navigate('Menu')}
       />
     </View>
   );
@@ -62,11 +63,10 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   subMessage: {
+    marginTop: 20,
     fontSize: 16,
     color: '#999',
     textAlign: 'center',
-    marginTop: 20,
-    paddingHorizontal: 20,
   },
 });
 

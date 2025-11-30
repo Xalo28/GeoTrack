@@ -8,7 +8,8 @@ import {
   TouchableOpacity,
   Alert,
   KeyboardAvoidingView,
-  Platform
+  Platform,
+  ActivityIndicator
 } from 'react-native';
 import Header from '../components/Header';
 import FormInputWithIcon from '../components/FormInputWithIcon';
@@ -19,6 +20,9 @@ import { useOrders } from '../context/OrdersContext';
 const ManualOrderScreen = ({ navigation }) => {
   const { addOrder } = useOrders();
   
+  // Estado para controlar la carga y evitar doble clic
+  const [isSaving, setIsSaving] = useState(false);
+
   const [formData, setFormData] = useState({
     orderId: '',
     clientName: '',
@@ -53,29 +57,39 @@ const ManualOrderScreen = ({ navigation }) => {
     return isValid;
   };
 
-  const handleAccept = () => {
+  const handleAccept = async () => {
     if (validateForm()) {
-      // 1. Crear objeto de pedido
-      const newOrder = {
-        numeroPedido: formData.orderId || `MAN-${Date.now().toString().slice(-4)}`,
-        cliente: formData.clientName,
-        distrito: formData.district,
-        informacionContacto: {
-          telefono: formData.phone,
-          direccion: formData.address
-        },
-        productos: ['Entrega Manual', 'Paquete Estándar']
-      };
+      try {
+        setIsSaving(true); // Bloquear botón y mostrar carga
 
-      // 2. Guardar en Contexto
-      addOrder(newOrder);
+        // Simular un pequeño tiempo de espera para que se sienta natural (opcional)
+        await new Promise(resolve => setTimeout(resolve, 500));
 
-      // 3. Feedback y Navegación
-      Alert.alert("Éxito", "Pedido registrado correctamente", [
-        { text: "OK", onPress: () => navigation.navigate('Pedidos') }
-      ]);
+        const newOrder = {
+          numeroPedido: formData.orderId || `MAN-${Date.now().toString().slice(-4)}`,
+          cliente: formData.clientName,
+          distrito: formData.district,
+          informacionContacto: {
+            telefono: formData.phone,
+            direccion: formData.address
+          },
+          productos: ['Entrega Manual', 'Paquete Estándar']
+        };
+
+        // Guardar en el contexto
+        addOrder(newOrder);
+
+        // Navegar DIRECTAMENTE a Pedidos para ver el resultado
+        // Usamos replace o navigate para evitar pilas extrañas
+        navigation.navigate('Pedidos');
+
+      } catch (error) {
+        Alert.alert("Error", "No se pudo guardar el pedido");
+      } finally {
+        setIsSaving(false);
+      }
     } else {
-      Alert.alert("Atención", "Por favor completa los campos marcados");
+      Alert.alert("Campos incompletos", "Por favor revisa los campos marcados en rojo.");
     }
   };
 
@@ -86,9 +100,14 @@ const ManualOrderScreen = ({ navigation }) => {
 
       <KeyboardAvoidingView 
         behavior={Platform.OS === "ios" ? "padding" : "height"}
-        style={{ flex: 1 }}
+        style={styles.keyboardView}
       >
-        <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
+        <ScrollView 
+          style={styles.scrollView} 
+          contentContainerStyle={styles.scrollContent}
+          showsVerticalScrollIndicator={false}
+          keyboardShouldPersistTaps="handled" // Importante para que los botones funcionen con teclado abierto
+        >
           <Text style={styles.title}>Ingrese datos del pedido</Text>
           
           <View style={styles.formContainer}>
@@ -140,26 +159,32 @@ const ManualOrderScreen = ({ navigation }) => {
             <TouchableOpacity 
               style={[styles.actionButton, styles.cancelButton]} 
               onPress={() => navigation.goBack()}
+              disabled={isSaving} // Desactivar si está guardando
             >
               <Text style={styles.cancelText}>CANCELAR</Text>
             </TouchableOpacity>
             
             <TouchableOpacity 
-              style={[styles.actionButton, styles.acceptButton]} 
+              style={[styles.actionButton, styles.acceptButton, isSaving && styles.disabledButton]} 
               onPress={handleAccept}
+              disabled={isSaving} // Desactivar para evitar doble clic
             >
-              <Text style={styles.acceptText}>GUARDAR</Text>
+              {isSaving ? (
+                <ActivityIndicator color="#FFF" size="small" />
+              ) : (
+                <Text style={styles.acceptText}>GUARDAR</Text>
+              )}
             </TouchableOpacity>
           </View>
           
-          {/* Espacio extra para el teclado */}
-          <View style={{ height: 100 }} />
+          {/* Espacio final para que el teclado no tape el botón */}
+          <View style={{ height: 50 }} />
         </ScrollView>
       </KeyboardAvoidingView>
 
       <BottomBar 
         onScanPress={() => navigation.navigate('ScanPhase1')}
-        onAddPress={() => {}} // Ya estamos aquí
+        onAddPress={() => {}} 
         onMenuPress={() => navigation.navigate('Menu')}
       />
     </View>
@@ -168,7 +193,10 @@ const ManualOrderScreen = ({ navigation }) => {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#FFFFFF' },
-  content: { flex: 1, paddingHorizontal: 20 },
+  keyboardView: { flex: 1 },
+  scrollView: { flex: 1, paddingHorizontal: 20 },
+  scrollContent: { paddingBottom: 20 },
+  
   title: {
     fontSize: 20,
     fontWeight: 'bold',
@@ -177,10 +205,12 @@ const styles = StyleSheet.create({
     marginVertical: 20,
   },
   formContainer: { marginBottom: 20 },
+  
   buttonContainer: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     marginBottom: 20,
+    marginTop: 10,
   },
   actionButton: {
     flex: 0.48,
@@ -188,9 +218,24 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     alignItems: 'center',
     justifyContent: 'center',
+    height: 50, // Altura fija para que no salte al cargar
   },
-  cancelButton: { backgroundColor: '#FFEDED', borderWidth: 1, borderColor: '#FF4444' },
-  acceptButton: { backgroundColor: '#5CE1E6', shadowColor: '#000', shadowOffset: {width: 0, height: 2}, shadowOpacity: 0.2, shadowRadius: 3, elevation: 3 },
+  cancelButton: { 
+    backgroundColor: '#FFF', 
+    borderWidth: 1, 
+    borderColor: '#FF4444' 
+  },
+  acceptButton: { 
+    backgroundColor: '#5CE1E6', 
+    shadowColor: '#000', 
+    shadowOffset: {width: 0, height: 2}, 
+    shadowOpacity: 0.2, 
+    shadowRadius: 3, 
+    elevation: 3 
+  },
+  disabledButton: {
+    opacity: 0.7,
+  },
   cancelText: { color: '#FF4444', fontWeight: 'bold' },
   acceptText: { color: '#FFF', fontWeight: 'bold' },
 });

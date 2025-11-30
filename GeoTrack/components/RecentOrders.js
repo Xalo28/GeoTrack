@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { useOrders } from '../context/OrdersContext';
 import OrderDetailsModal from './OrderDetailsModal';
 
@@ -25,7 +25,7 @@ const RecentOrders = ({ orders = [] }) => {
     handleCloseModal();
   };
 
-  if (orders.length === 0) {
+  if (!orders || orders.length === 0) {
     return (
       <View style={styles.container}>
         <Text style={styles.title}>PEDIDOS RECIENTES</Text>
@@ -40,13 +40,8 @@ const RecentOrders = ({ orders = [] }) => {
     <View style={styles.container}>
       <Text style={styles.title}>PEDIDOS RECIENTES</Text>
       
-      <ScrollView 
-        style={styles.ordersList}
-        showsVerticalScrollIndicator={true}
-        contentContainerStyle={styles.scrollContent}
-        bounces={true}
-        overScrollMode="always"
-      >
+      {/* CAMBIO: Usamos View en lugar de ScrollView y mapeamos los items */}
+      <View style={styles.listContainer}>
         {orders.map((order, index) => (
           <TouchableOpacity 
             key={order.id || index}
@@ -69,10 +64,7 @@ const RecentOrders = ({ orders = [] }) => {
             <Text style={styles.viewDetailsText}>Ver más detalles →</Text>
           </TouchableOpacity>
         ))}
-        
-        {/* Espacio mínimo al final */}
-        <View style={styles.bottomSpacer} />
-      </ScrollView>
+      </View>
 
       <OrderDetailsModal
         visible={modalVisible}
@@ -86,34 +78,28 @@ const RecentOrders = ({ orders = [] }) => {
 
 const styles = StyleSheet.create({
   container: {
-    flex: 1,
+    width: '100%',
+    marginBottom: 20, // Espacio final
+  },
+  listContainer: {
+    width: '100%',
   },
   title: {
     fontSize: 18,
     fontWeight: 'bold',
     color: '#000000',
     marginBottom: 15,
-    marginTop: 20,
+    marginTop: 10,
   },
   noOrders: {
-    flex: 1,
-    justifyContent: 'center',
+    padding: 30,
     alignItems: 'center',
     backgroundColor: '#f8f9fa',
     borderRadius: 10,
-    marginTop: 10,
   },
   noOrdersText: {
     fontSize: 16,
     color: '#6c757d',
-  },
-  ordersList: {
-    flex: 1,
-    width: '100%',
-  },
-  scrollContent: {
-    flexGrow: 1,
-    paddingBottom: 10,
   },
   orderItem: {
     backgroundColor: '#f8f9fa',
@@ -123,10 +109,7 @@ const styles = StyleSheet.create({
     borderLeftWidth: 4,
     borderLeftColor: '#007bff',
     shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 1,
-    },
+    shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.1,
     shadowRadius: 2,
     elevation: 2,
@@ -186,9 +169,6 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     marginTop: 8,
     textAlign: 'right',
-  },
-  bottomSpacer: {
-    height: 20,
   },
 });
 
