@@ -3,24 +3,44 @@ import React, { createContext, useState, useContext } from 'react';
 const OrdersContext = createContext();
 
 export const OrdersProvider = ({ children }) => {
-  // Estado inicial de pedidos.
-  // Puedes descomentar el objeto dentro para tener un pedido de prueba al iniciar la app.
+  // Estado inicial de pedidos con datos de prueba y COORDENADAS
   const [orders, setOrders] = useState([
-    /*
     {
       id: '1',
       numeroPedido: 'PED-001',
       date: new Date().toISOString(),
       cliente: 'Juan Perez',
       estado: 'Pendiente',
+      distrito: 'SAN ISIDRO',
       informacionContacto: { 
-        direccion: 'Av. Siempre Viva 123', 
-        telefono: '123456789' 
+        direccion: 'Av. Javier Prado 123', 
+        telefono: '999-888-777' 
       },
       productos: ['Caja x2'],
-      distrito: 'San Isidro'
+      // Coordenadas de ejemplo (San Isidro, Lima)
+      coordinate: { 
+        latitude: -12.097054, 
+        longitude: -77.037160 
+      }
+    },
+    {
+      id: '2',
+      numeroPedido: 'PED-002',
+      date: new Date().toISOString(),
+      cliente: 'Maria Lopez',
+      estado: 'Entregado',
+      distrito: 'MIRAFLORES',
+      informacionContacto: { 
+        direccion: 'Calle Esperanza 456', 
+        telefono: '999-666-333' 
+      },
+      productos: ['Sobre x1'],
+      // Coordenadas de ejemplo (Miraflores, Lima)
+      coordinate: { 
+        latitude: -12.119799, 
+        longitude: -77.029019 
+      }
     }
-    */
   ]);
 
   // Propiedad derivada para saber si hay pedidos activos
@@ -40,7 +60,9 @@ export const OrdersProvider = ({ children }) => {
         telefono: newOrder.informacionContacto?.telefono || 'No registrado',
         direccion: newOrder.informacionContacto?.direccion || 'Sin dirección',
       },
-      distrito: newOrder.distrito || 'Lima'
+      distrito: newOrder.distrito || 'LIMA',
+      // Si no vienen coordenadas (pedido manual), se pone null
+      coordinate: newOrder.coordinate || null 
     };
     
     // Agregamos el nuevo pedido al principio de la lista (LIFO)

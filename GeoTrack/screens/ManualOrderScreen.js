@@ -14,13 +14,12 @@ import {
 import Header from '../components/Header';
 import FormInputWithIcon from '../components/FormInputWithIcon';
 import DistrictSelector from '../components/DistrictSelector';
-import BottomBar from '../components/BottomBar';
+// Se eliminó la importación de BottomBar
 import { useOrders } from '../context/OrdersContext';
 
 const ManualOrderScreen = ({ navigation }) => {
   const { addOrder } = useOrders();
   
-  // Estado para controlar la carga y evitar doble clic
   const [isSaving, setIsSaving] = useState(false);
 
   const [formData, setFormData] = useState({
@@ -60,9 +59,9 @@ const ManualOrderScreen = ({ navigation }) => {
   const handleAccept = async () => {
     if (validateForm()) {
       try {
-        setIsSaving(true); // Bloquear botón y mostrar carga
+        setIsSaving(true); 
 
-        // Simular un pequeño tiempo de espera para que se sienta natural (opcional)
+        // Simular espera
         await new Promise(resolve => setTimeout(resolve, 500));
 
         const newOrder = {
@@ -76,12 +75,10 @@ const ManualOrderScreen = ({ navigation }) => {
           productos: ['Entrega Manual', 'Paquete Estándar']
         };
 
-        // Guardar en el contexto
         addOrder(newOrder);
 
-        // Navegar DIRECTAMENTE a Pedidos para ver el resultado
-        // Usamos replace o navigate para evitar pilas extrañas
-        navigation.navigate('Pedidos');
+        // Navegar a la pantalla de éxito con los datos
+        navigation.navigate('OrderSuccess', { orderData: newOrder });
 
       } catch (error) {
         Alert.alert("Error", "No se pudo guardar el pedido");
@@ -106,7 +103,7 @@ const ManualOrderScreen = ({ navigation }) => {
           style={styles.scrollView} 
           contentContainerStyle={styles.scrollContent}
           showsVerticalScrollIndicator={false}
-          keyboardShouldPersistTaps="handled" // Importante para que los botones funcionen con teclado abierto
+          keyboardShouldPersistTaps="handled"
         >
           <Text style={styles.title}>Ingrese datos del pedido</Text>
           
@@ -159,7 +156,7 @@ const ManualOrderScreen = ({ navigation }) => {
             <TouchableOpacity 
               style={[styles.actionButton, styles.cancelButton]} 
               onPress={() => navigation.goBack()}
-              disabled={isSaving} // Desactivar si está guardando
+              disabled={isSaving}
             >
               <Text style={styles.cancelText}>CANCELAR</Text>
             </TouchableOpacity>
@@ -167,7 +164,7 @@ const ManualOrderScreen = ({ navigation }) => {
             <TouchableOpacity 
               style={[styles.actionButton, styles.acceptButton, isSaving && styles.disabledButton]} 
               onPress={handleAccept}
-              disabled={isSaving} // Desactivar para evitar doble clic
+              disabled={isSaving}
             >
               {isSaving ? (
                 <ActivityIndicator color="#FFF" size="small" />
@@ -177,16 +174,12 @@ const ManualOrderScreen = ({ navigation }) => {
             </TouchableOpacity>
           </View>
           
-          {/* Espacio final para que el teclado no tape el botón */}
-          <View style={{ height: 50 }} />
+          {/* Espacio final para asegurar scroll */}
+          <View style={{ height: 30 }} />
         </ScrollView>
       </KeyboardAvoidingView>
 
-      <BottomBar 
-        onScanPress={() => navigation.navigate('ScanPhase1')}
-        onAddPress={() => {}} 
-        onMenuPress={() => navigation.navigate('Menu')}
-      />
+      {/* Se eliminó el componente <BottomBar /> de aquí */}
     </View>
   );
 };
@@ -218,7 +211,7 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     alignItems: 'center',
     justifyContent: 'center',
-    height: 50, // Altura fija para que no salte al cargar
+    height: 50,
   },
   cancelButton: { 
     backgroundColor: '#FFF', 

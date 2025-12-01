@@ -23,19 +23,21 @@ const discovery = {
 const LoginScreen = ({ navigation }) => {
   const [loading, setLoading] = useState(false);
 
-  // Hook de Expo para manejar la autenticación
+  // ESTA LÍNEA ES LA CLAVE: Genera la URI dinámica
+  const redirectUri = makeRedirectUri({ scheme: 'geotrack' });
+  
+  // Imprímela en la consola para ver cuál es
+  console.log("====================================");
+  console.log("COPIA ESTA URL EXACTA EN AUTH0:", redirectUri);
+  console.log("====================================");
+
   const [request, response, promptAsync] = useAuthRequest(
     {
       clientId: AUTH0_CLIENT_ID,
       scopes: ['openid', 'profile', 'email'],
-      redirectUri: makeRedirectUri({
-        scheme: 'geotrack'
-      }),
-      responseType: ResponseType.Token, // Usamos Token directo para simplificar
-      extraParams: {
-        prompt: 'login', // Forzar login siempre
-        ui_locales: 'es' // Idioma español
-      }
+      redirectUri: redirectUri, // Asegúrate de usar la variable aquí, NO el texto fijo
+      responseType: ResponseType.Token,
+      extraParams: { prompt: 'login', ui_locales: 'es' }
     },
     discovery
   );

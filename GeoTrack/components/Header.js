@@ -81,11 +81,12 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
   },
-  headerTitle: {
-    fontSize: 24, // Reducido un poco para evitar saltos de línea
+headerTitle: {
+    fontSize: 20, // Reducir de 24 a 20 o 22
     fontWeight: '800',
     color: '#000000',
     letterSpacing: 0.5,
+    flexShrink: 1, // Asegura que se encoja si es necesario
   },
   headerSubtitle: {
     fontSize: 14,

@@ -1,19 +1,28 @@
 import React from 'react';
 import { View, TouchableOpacity, Text, StyleSheet } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import QRIcon from './QRIcon';
 import MenuIcon from './MenuIcon';
 
 const BottomBar = ({ onScanPress, onAddPress, onMenuPress }) => {
+  const insets = useSafeAreaInsets();
+
   return (
-    <View style={styles.bottomBar}>
+    <View style={[
+      styles.bottomBar, 
+      { paddingBottom: 15 + insets.bottom } 
+    ]}>
+      {/* Botón Izquierdo: ESCANEAR */}
       <TouchableOpacity style={styles.iconButton} onPress={onScanPress}>
         <QRIcon />
       </TouchableOpacity>
 
+      {/* Botón Central: AGREGAR (+) */}
       <TouchableOpacity style={styles.addButton} onPress={onAddPress}>
         <Text style={styles.addButtonText}>+</Text>
       </TouchableOpacity>
 
+      {/* Botón Derecho: MENÚ */}
       <TouchableOpacity style={styles.iconButton} onPress={onMenuPress}>
         <MenuIcon />
       </TouchableOpacity>
@@ -26,7 +35,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-around',
     alignItems: 'center',
-    paddingVertical: 15,
+    paddingTop: 15,
     paddingHorizontal: 40,
     backgroundColor: '#FFFFFF',
     borderTopWidth: 1,
@@ -41,6 +50,7 @@ const styles = StyleSheet.create({
     padding: 10,
     alignItems: 'center',
     justifyContent: 'center',
+    zIndex: 1, // Asegura que no se superponga
   },
   addButton: {
     width: 64,
@@ -54,6 +64,8 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.3,
     shadowRadius: 4.65,
     elevation: 8,
+    marginTop: -20,
+    zIndex: 10, // Asegura que el botón esté por encima de todo
   },
   addButtonText: {
     color: '#FFFFFF',
