@@ -6,7 +6,12 @@ import { StatusBar } from 'expo-status-bar';
 import ScanHeader from '../components/ScanHeader';
 import ScanControls from '../components/ScanControls';
 
-const ScanPhase2Screen = ({ navigation }) => {
+const ScanPhase2Screen = ({ navigation, route }) => {
+  
+  // Recibir objeto YA PARSEADO desde Fase 1
+  const scannedData = route?.params?.scannedData;
+  console.log("=== RECIBIDO EN FASE 2 === ", scannedData);
+
   const [progress, setProgress] = useState(0);
   const [isComplete, setIsComplete] = useState(false);
 
@@ -27,8 +32,11 @@ const ScanPhase2Screen = ({ navigation }) => {
   }, []);
 
   const handleContinue = () => {
+
+    console.log("=== ENVIADO A SUCCESS === ", scannedData);
+
     if (isComplete) {
-      navigation.navigate('Success');
+      navigation.navigate('Success', { scannedData });
     }
   };
 

@@ -2,11 +2,11 @@ import React, { useState } from 'react';
 import { View, StyleSheet, Alert } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 
-
-// Componentes 
 import ScanHeader from '../components/ScanHeader';
 import ScannerArea from '../components/ScannerArea';
 import ScanControls from '../components/ScanControls';
+
+import { parseQR } from '../utils/parseQR';
 
 const ScanPhase1Screen = ({ navigation }) => {
   const [isScanning, setIsScanning] = useState(false);
@@ -18,14 +18,21 @@ const ScanPhase1Screen = ({ navigation }) => {
   };
 
   const handleBarcodeScanned = ({ type, data }) => {
-    console.log('Código escaneado:', { type, data });
-    
-    // DETENER el escaneo inmediatamente
-    setIsScanning(false);
-    setScanResult(data);
-    
-    // Navegar directamente sin Alert
-    navigation.navigate('ScanPhase2', { scannedData: data });
+console.log("========== QR RAW DATA =========");
+console.log(data);
+console.log("================================");
+    const parsed = parseQR(data);
+
+    if (!parsed) {
+      Alert.alert(
+        "QR inválido",
+        "El QR debe contener: NOMBRE, CEL, DIR y PROD"
+      );
+      setIsScanning(false);
+      return;
+    }
+
+    navigation.navigate('ScanPhase2', { scannedData: parsed });
   };
 
   const stopScanning = () => {
