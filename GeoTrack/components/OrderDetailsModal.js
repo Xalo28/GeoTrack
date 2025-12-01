@@ -1,34 +1,66 @@
 import React from 'react';
-import { 
-  View, 
-  Text, 
-  StyleSheet, 
-  Modal, 
-  TouchableOpacity, 
-  Linking,
-  ScrollView 
-} from 'react-native';
+import { View, Text, StyleSheet, Modal, TouchableOpacity, Linking,ScrollView } from 'react-native';
 import { useOrders } from '../context/OrdersContext';
 
 const OrderDetailsModal = ({ visible, order, onClose, onMarkDelivered }) => {
-  const { markAsDelivered } = useOrders();
+  const { markAsDelivered, formatDateForDisplay } = useOrders();
 
   if (!order) return null;
 
+  // Función segura para formatear fecha
+  const formatDate = (dateString) => {
+    try {
+      if (!dateString) return { dateStr: 'N/A', timeStr: '' };
+      
+      // Si formatDateForDisplay existe en el contexto, úsalo
+      if (formatDateForDisplay) {
+        const formatted = formatDateForDisplay(dateString);
+        return { 
+          dateStr: formatted.dateString, 
+          timeStr: formatted.timeString 
+        };
+      }
+      
+      // Si no, hazlo manualmente
+      const date = new Date(dateString);
+      if (isNaN(date.getTime())) return { dateStr: 'Fecha inválida', timeStr: '' };
+      
+      return {
+        dateStr: date.toLocaleDateString(),
+        timeStr: date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+      };
+    } catch (error) {
+      console.error('Error formatting date:', error);
+      return { dateStr: 'N/A', timeStr: '' };
+    }
+  };
+
+  const { dateStr, timeStr } = formatDate(order.date);
+
   const handleCall = () => {
-    const phoneNumber = order.informacionContacto.telefono.replace(/\D/g, '');
-    Linking.openURL(`tel:${phoneNumber}`);
+    const phoneNumber = order.informacionContacto?.telefono?.replace(/\D/g, '') || '';
+    if (phoneNumber) {
+      Linking.openURL(`tel:${phoneNumber}`);
+    } else {
+      Alert.alert('Error', 'Número de teléfono no disponible');
+    }
   };
 
   const handleOpenMaps = () => {
-    const address = encodeURIComponent(order.informacionContacto.direccion);
-    Linking.openURL(`https://maps.google.com/?q=${address}`);
+    const address = order.informacionContacto?.direccion || order.direccion || '';
+    if (address) {
+      Linking.openURL(`https://maps.google.com/?q=${encodeURIComponent(address)}`);
+    } else {
+      Alert.alert('Error', 'Dirección no disponible');
+    }
   };
 
   const handleMarkDelivered = () => {
-    markAsDelivered(order.id);
-    onMarkDelivered?.();
-    onClose();
+    if (order.id) {
+      markAsDelivered(order.id);
+      onMarkDelivered?.();
+      onClose();
+    }
   };
 
   return (
@@ -53,12 +85,12 @@ const OrderDetailsModal = ({ visible, order, onClose, onMarkDelivered }) => {
             <View style={styles.section}>
               <Text style={styles.sectionTitle}>Información General</Text>
               <View style={styles.infoRow}>
-                <Text style={styles.infoLabel}>Informe de Pedido:</Text>
-                <Text style={styles.infoValue}>{order.numeroPedido}</Text>
+                <Text style={styles.infoLabel}>Código del Pedido:</Text>
+                <Text style={styles.infoValue}>{order.numeroPedido || 'N/A'}</Text>
               </View>
               <View style={styles.infoRow}>
                 <Text style={styles.infoLabel}>Cliente:</Text>
-                <Text style={styles.infoValue}>{order.cliente}</Text>
+                <Text style={styles.infoValue}>{order.cliente || 'N/A'}</Text>
               </View>
               <View style={styles.infoRow}>
                 <Text style={styles.infoLabel}>Estado:</Text>
@@ -66,13 +98,13 @@ const OrderDetailsModal = ({ visible, order, onClose, onMarkDelivered }) => {
                   styles.statusBadge,
                   order.estado === 'Entregado' ? styles.deliveredBadge : styles.pendingBadge
                 ]}>
-                  <Text style={styles.statusText}>{order.estado}</Text>
+                  <Text style={styles.statusText}>{order.estado || 'Pendiente'}</Text>
                 </View>
               </View>
               <View style={styles.infoRow}>
                 <Text style={styles.infoLabel}>Fecha:</Text>
                 <Text style={styles.infoValue}>
-                  {new Date(order.date).toLocaleDateString()} {new Date(order.date).toLocaleTimeString()}
+                  {dateStr} {timeStr}
                 </Text>
               </View>
             </View>
@@ -82,12 +114,30 @@ const OrderDetailsModal = ({ visible, order, onClose, onMarkDelivered }) => {
               <Text style={styles.sectionTitle}>Información de Contacto</Text>
               
               <View style={styles.contactButtons}>
-                <TouchableOpacity style={styles.contactButton} onPress={handleCall}>
-                  <Text style={styles.contactButtonText}>📞 {order.informacionContacto.telefono}</Text>
+                <TouchableOpacity 
+                  style={styles.contactButton} 
+                  onPress={handleCall}
+                  disabled={!order.informacionContacto?.telefono}
+                >
+                  <Text style={[
+                    styles.contactButtonText,
+                    !order.informacionContacto?.telefono && styles.disabledText
+                  ]}>
+                    📞 {order.informacionContacto?.telefono || 'No disponible'}
+                  </Text>
                 </TouchableOpacity>
                 
-                <TouchableOpacity style={styles.contactButton} onPress={handleOpenMaps}>
-                  <Text style={styles.contactButtonText}>📍 {order.informacionContacto.direccion}</Text>
+                <TouchableOpacity 
+                  style={styles.contactButton} 
+                  onPress={handleOpenMaps}
+                  disabled={!order.informacionContacto?.direccion}
+                >
+                  <Text style={[
+                    styles.contactButtonText,
+                    !order.informacionContacto?.direccion && styles.disabledText
+                  ]}>
+                    📍 {order.informacionContacto?.direccion || 'Dirección no disponible'}
+                  </Text>
                 </TouchableOpacity>
               </View>
             </View>
@@ -95,11 +145,15 @@ const OrderDetailsModal = ({ visible, order, onClose, onMarkDelivered }) => {
             {/* Productos */}
             <View style={styles.section}>
               <Text style={styles.sectionTitle}>Productos</Text>
-              {order.productos.map((producto, index) => (
-                <View key={index} style={styles.productItem}>
-                  <Text style={styles.productText}>• {producto}</Text>
-                </View>
-              ))}
+              {order.productos && order.productos.length > 0 ? (
+                order.productos.map((producto, index) => (
+                  <View key={index} style={styles.productItem}>
+                    <Text style={styles.productText}>• {producto}</Text>
+                  </View>
+                ))
+              ) : (
+                <Text style={styles.noProductsText}>No hay productos especificados</Text>
+              )}
             </View>
 
             {/* Separador */}
@@ -113,9 +167,8 @@ const OrderDetailsModal = ({ visible, order, onClose, onMarkDelivered }) => {
               </Text>
               <Text style={styles.additionalInfo}>
                 <Text style={styles.bold}>Distrito: </Text>
-                <Text>San Juan de Lurigancho</Text>
+                <Text>{order.distrito || 'San Juan de Lurigancho'}</Text>
               </Text>
-              
             </View>
           </ScrollView>
 
@@ -235,12 +288,21 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     color: '#007bff',
   },
+  disabledText: {
+    color: '#6c757d',
+    opacity: 0.6,
+  },
   productItem: {
     marginBottom: 5,
   },
   productText: {
     fontSize: 14,
     color: '#000000',
+  },
+  noProductsText: {
+    fontSize: 14,
+    color: '#6c757d',
+    fontStyle: 'italic',
   },
   separator: {
     height: 1,

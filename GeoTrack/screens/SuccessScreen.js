@@ -18,8 +18,11 @@ const SuccessScreen = ({ navigation, route }) => {
     return null;
   }
 
+  // Generar un ID aleatorio tipo PED-123456
+  const randomId = `PED-${String(Math.floor(Math.random() * 1000000)).padStart(6, '0')}`;
+
   const newOrderData = {
-    numeroPedido: Date.now().toString(),
+    numeroPedido: randomId,
     cliente: scannedData.NOMBRE,
     informacionContacto: {
       direccion: scannedData.DIR,
@@ -31,7 +34,7 @@ const SuccessScreen = ({ navigation, route }) => {
 
   const handleAccept = () => {
     addOrder(newOrderData);
-    navigation.navigate('Home');
+    navigation.navigate('Home'); // o 'Rutas' si quieres enviar allí
   };
 
   return (
@@ -45,9 +48,7 @@ const SuccessScreen = ({ navigation, route }) => {
         showInstruction={true}
       />
 
-      {/* 👇 👇 👇  AQUI EL FIX  👇 👇 👇 */}
       <ScrollView contentContainerStyle={styles.scrollArea}> 
-
         <View style={styles.content}>
           <SuccessIcon size={120} checkmarkSize={60} />
           
@@ -87,34 +88,16 @@ const SuccessScreen = ({ navigation, route }) => {
             buttonStyle={styles.finishButton}
           />
         </View>
-
       </ScrollView>
-      {/* 👆 👆 👆 SCROLLVIEW 👆 👆 👆 */}
-
     </View>
   );
 };
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#ffffff' },
-
-  scrollArea: {
-    padding: 20,
-    paddingBottom: 40,
-  },
-
-  content: { 
-    alignItems: 'center',
-    width: '100%'
-  },
-
-  successTitle: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: '#27ae60',
-    marginVertical: 20,
-  },
-
+  scrollArea: { padding: 20, paddingBottom: 40 },
+  content: { alignItems: 'center', width: '100%' },
+  successTitle: { fontSize: 24, fontWeight: 'bold', color: '#27ae60', marginVertical: 20 },
   infoCard: {
     width: '100%',
     backgroundColor: '#F8F9FA',
@@ -124,15 +107,10 @@ const styles = StyleSheet.create({
     borderColor: '#E0E0E0',
     marginBottom: 20,
   },
-
   label: { fontSize: 14, color: '#666', marginTop: 10 },
   value: { fontSize: 18, fontWeight: 'bold', color: '#333' },
   divider: { height: 1, backgroundColor: '#DDD', marginVertical: 10 },
-  finishButton: { 
-    backgroundColor: '#5CE1E6',
-    marginTop: 30, 
-    width: '100%' 
-  },
+  finishButton: { backgroundColor: '#5CE1E6', marginTop: 30, width: '100%' },
 });
 
 export default SuccessScreen;

@@ -1,7 +1,7 @@
 import React from 'react';
 import { NavigationContainer } from '@react-navigation/native';
 import { createStackNavigator } from '@react-navigation/stack';
-import { SafeAreaProvider } from 'react-native-safe-area-context'; // <--- 1. IMPORTANTE
+import { SafeAreaProvider } from 'react-native-safe-area-context'; 
 import { OrdersProvider } from './context/OrdersContext';
 
 // Pantallas Principales
@@ -19,7 +19,6 @@ import OrderSuccessScreen from './screens/OrderSuccessScreen';
 
 // NUEVAS PANTALLAS DEL MENÚ
 import ProfileScreen from './screens/ProfileScreen';
-import NotificationsScreen from './screens/NotificationsScreen';
 import SecurityScreen from './screens/SecurityScreen';
 import SettingsScreen from './screens/SettingsScreen';
 import HelpScreen from './screens/HelpScreen';
@@ -46,7 +45,6 @@ export default function App() {
             
             {/* Funcionalidades del Menú (NUEVAS) */}
             <Stack.Screen name="Profile" component={ProfileScreen} />
-            <Stack.Screen name="Notifications" component={NotificationsScreen} />
             <Stack.Screen name="Security" component={SecurityScreen} />
             <Stack.Screen name="Settings" component={SettingsScreen} />
             <Stack.Screen name="Help" component={HelpScreen} />
@@ -62,4 +60,5 @@ export default function App() {
       </OrdersProvider>
     </SafeAreaProvider>
   );
+  
 }

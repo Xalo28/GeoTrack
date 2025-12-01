@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { 
   View, 
   Text, 
@@ -13,12 +13,12 @@ import FormInputWithIcon from '../components/FormInputWithIcon';
 import DistrictSelector from '../components/DistrictSelector';
 import BottomBar from '../components/BottomBar';
 import { useOrders } from '../context/OrdersContext';
+import OSMAddressAutocomplete from '../components/OSMAddressAutocomplete';
 
 const ManualOrderScreen = ({ navigation }) => {
   const { addOrder } = useOrders();
   
   const [formData, setFormData] = useState({
-    orderId: '',
     clientName: '',
     phone: '',
     district: '',
@@ -27,19 +27,12 @@ const ManualOrderScreen = ({ navigation }) => {
 
   const [errors, setErrors] = useState({});
 
-  // Efecto para limpiar errores cuando el usuario empiece a escribir
-  useEffect(() => {
-    // Este efecto se ejecuta cuando cambia el formData
-  }, [formData]);
-
   const handleInputChange = (field, value) => {
-    // Actualizar el estado del formulario
     setFormData(prev => ({
       ...prev,
       [field]: value
     }));
-    
-    // Limpiar error inmediatamente
+
     if (errors[field]) {
       setErrors(prev => {
         const newErrors = { ...prev };
@@ -57,17 +50,14 @@ const ManualOrderScreen = ({ navigation }) => {
       newErrors.clientName = 'El nombre es requerido';
       isValid = false;
     }
-
     if (!formData.phone.trim()) {
       newErrors.phone = 'El teléfono es requerido';
       isValid = false;
     }
-
     if (!formData.district.trim()) {
       newErrors.district = 'El distrito es requerido';
       isValid = false;
     }
-
     if (!formData.address.trim()) {
       newErrors.address = 'La dirección es requerida';
       isValid = false;
@@ -83,25 +73,19 @@ const ManualOrderScreen = ({ navigation }) => {
       "¿Estás seguro de que quieres cancelar el ingreso del pedido?",
       [
         { text: "NO", style: "cancel" },
-        { 
-          text: "SÍ", 
-          onPress: () => navigation.goBack()
-        }
+        { text: "SÍ", onPress: () => navigation.goBack() }
       ]
     );
   };
 
   const handleAccept = () => {
-    // Agregamos console.log para debuggear
-    console.log('Button pressed');
-    console.log('Form data:', formData);
-
     if (validateForm()) {
-      console.log('Form is valid');
-      
+      // Generar un ID aleatorio tipo PED-123456
+      const randomId = `PED-${Math.floor(Math.random() * 1000000)}`;
+
       const newOrder = {
         cliente: formData.clientName.trim(),
-        numeroPedido: Date.now().toString(),
+        numeroPedido: randomId,
         informacionContacto: {
           telefono: formData.phone.trim(),
           direccion: formData.address.trim()
@@ -111,9 +95,10 @@ const ManualOrderScreen = ({ navigation }) => {
 
       try {
         addOrder(newOrder);
-        console.log('Order added successfully');
-        
-        navigation.navigate('Home');
+        Alert.alert("Éxito", `Pedido ${newOrder.numeroPedido} registrado`, [
+          { text: "OK", onPress: () => navigation.navigate('Home') } 
+        ]);
+        setFormData({ clientName: '', phone: '', district: '', address: '' });
       } catch (error) {
         console.error('Error adding order:', error);
         Alert.alert(
@@ -122,7 +107,6 @@ const ManualOrderScreen = ({ navigation }) => {
         );
       }
     } else {
-      console.log('Form validation failed', errors);
       Alert.alert(
         "Formulario incompleto",
         "Por favor complete todos los campos requeridos."
@@ -136,17 +120,10 @@ const ManualOrderScreen = ({ navigation }) => {
       "¿Estás seguro de que quieres cerrar sesión?",
       [
         { text: "CANCELAR", style: "cancel" },
-        { 
-          text: "SÍ", 
-          onPress: () => navigation.navigate('Login')
-        }
+        { text: "SÍ", onPress: () => navigation.navigate('Login') }
       ]
     );
   };
-
-  const handleScanPress = () => navigation.navigate('ScanPhase1');
-  const handleAddPress = () => console.log('Add new route pressed');
-  const handleMenuPress = () => console.log('Menu pressed');
 
   return (
     <View style={styles.container}>
@@ -163,16 +140,7 @@ const ManualOrderScreen = ({ navigation }) => {
         <Text style={styles.title}>INGRESE PEDIDO MANUALMENTE</Text>
         
         <View style={styles.formContainer}>
-          <FormInputWithIcon
-            label="ID del Pedido"
-            value={formData.orderId}
-            onChangeText={(value) => handleInputChange('orderId', value.toUpperCase())}
-            placeholder="Ej: PED001"
-            iconName="document-text"
-            error={errors.orderId}
-            autoCapitalize="characters"
-          />
-          
+          {/* Nombre del cliente */}
           <FormInputWithIcon
             label="Nombre del cliente"
             value={formData.clientName}
@@ -183,14 +151,13 @@ const ManualOrderScreen = ({ navigation }) => {
             autoCapitalize="words"
           />
           
+          {/* Teléfono */}
           <FormInputWithIcon
             label="Teléfono"
             value={formData.phone}
             onChangeText={(value) => {
               const cleanValue = value.replace(/[^0-9]/g, '');
-              if (cleanValue.length <= 9) {
-                handleInputChange('phone', cleanValue);
-              }
+              if (cleanValue.length <= 9) handleInputChange('phone', cleanValue);
             }}
             placeholder="Ej: 987654321"
             iconName="call"
@@ -198,6 +165,7 @@ const ManualOrderScreen = ({ navigation }) => {
             keyboardType="numeric"
           />
           
+          {/* Distrito */}
           <DistrictSelector
             label="Distrito"
             value={formData.district}
@@ -205,14 +173,28 @@ const ManualOrderScreen = ({ navigation }) => {
             error={errors.district}
           />
           
-          <FormInputWithIcon
+          {/* Dirección con OSM Autocomplete */}
+          <OSMAddressAutocomplete
             label="Dirección"
             value={formData.address}
-            onChangeText={(value) => handleInputChange('address', value)}
-            placeholder="Ingrese la dirección completa"
-            iconName="location"
+            onChangeText={(value) => {
+              console.log('onChangeText llamado con:', value);
+              handleInputChange('address', value);
+            }}
+            placeholder="Selecciona o busca una dirección"
             error={errors.address}
-            autoCapitalize="words"
+            onSelect={(addressData) => {
+              console.log('onSelect llamado con:', addressData);
+              // IMPORTANTE: Actualizar el estado con la dirección
+              handleInputChange('address', addressData.address);
+              
+              // OPCIONAL: Autocompletar el distrito si está disponible
+              if (addressData.details && addressData.details.suburb) {
+                handleInputChange('district', addressData.details.suburb);
+              }
+            }}
+            countryCode="pe"
+            city="Lima"
           />
         </View>
 
@@ -235,66 +217,24 @@ const ManualOrderScreen = ({ navigation }) => {
       </ScrollView>
 
       <BottomBar 
-        onScanPress={handleScanPress}
-        onAddPress={handleAddPress}
-        onMenuPress={handleMenuPress}
+        onScanPress={() => console.log('Scan pressed')}
+        onAddPress={() => console.log('Add pressed')}
+        onMenuPress={() => console.log('Menu pressed')}
       />
     </View>
   );
 };
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#FFFFFF',
-  },
-  content: {
-    flex: 1,
-    paddingHorizontal: 20,
-  },
-  title: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: '#000000',
-    textAlign: 'center',
-    marginTop: 20,
-    marginBottom: 30,
-  },
-  formContainer: {
-    marginBottom: 30,
-  },
-  buttonContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginBottom: 30,
-    paddingHorizontal: 10,
-  },
-  cancelButton: {
-    backgroundColor: '#FF4444',
-    paddingVertical: 8,
-    paddingHorizontal: 20,
-    borderRadius: 6,
-    flex: 0.45,
-    alignItems: 'center',
-  },
-  cancelButtonText: {
-    color: '#FFFFFF',
-    fontSize: 14,
-    fontWeight: 'bold',
-  },
-  acceptButton: {
-    backgroundColor: '#4CAF50',
-    paddingVertical: 8,
-    paddingHorizontal: 20,
-    borderRadius: 6,
-    flex: 0.45,
-    alignItems: 'center',
-  },
-  acceptButtonText: {
-    color: '#FFFFFF',
-    fontSize: 14,
-    fontWeight: 'bold',
-  },
+  container: { flex: 1, backgroundColor: '#FFFFFF' },
+  content: { flex: 1, paddingHorizontal: 20 },
+  title: { fontSize: 24, fontWeight: 'bold', color: '#000', textAlign: 'center', marginTop: 20, marginBottom: 30 },
+  formContainer: { marginBottom: 30 },
+  buttonContainer: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 30, paddingHorizontal: 10 },
+  cancelButton: { backgroundColor: '#FF4444', paddingVertical: 8, paddingHorizontal: 20, borderRadius: 6, flex: 0.45, alignItems: 'center' },
+  cancelButtonText: { color: '#FFF', fontSize: 14, fontWeight: 'bold' },
+  acceptButton: { backgroundColor: '#4CAF50', paddingVertical: 8, paddingHorizontal: 20, borderRadius: 6, flex: 0.45, alignItems: 'center' },
+  acceptButtonText: { color: '#FFF', fontSize: 14, fontWeight: 'bold' },
 });
 
 export default ManualOrderScreen;

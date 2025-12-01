@@ -1,165 +1,486 @@
-import React, { useState, useEffect } from 'react';
-import { View, StyleSheet, Text, ScrollView, TouchableOpacity, Dimensions, Alert, ActivityIndicator } from 'react-native';
+import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
+import { 
+  View, 
+  Text, 
+  TouchableOpacity, 
+  Alert, 
+  Dimensions,
+  ActivityIndicator 
+} from 'react-native';
 import { StatusBar } from 'expo-status-bar';
-import MapView, { Marker, PROVIDER_DEFAULT } from 'react-native-maps';
 import * as Location from 'expo-location';
+import { Ionicons } from '@expo/vector-icons';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 import Header from '../components/Header';
-import LogoContainer from '../components/LogoContainer';
 import BottomBar from '../components/BottomBar';
 import OrderDetailsModal from '../components/OrderDetailsModal';
-import { Ionicons } from '@expo/vector-icons';
+import OrderList from '../components/OrderList';
+import MapViewer from '../components/MapViewer';
 import { useOrders } from '../context/OrdersContext';
+import { generateStableCoordinate } from '../utils/geocoding';
+import { useRouteOptimizer } from '../components/RouteOptimizer';
+import styles from '../styles/PedidosStyles';
 
 const { width, height } = Dimensions.get('window');
 
 const PedidosScreen = ({ navigation, route }) => {
-  const { districtFilter } = route.params || { districtFilter: 'TODOS' };
-  const { orders } = useOrders();
+  const { districtFilter = 'TODOS' } = route.params || {};
+  const { 
+    orders, 
+    deleteOrder, 
+    markAsDelivered,
+    savedOptimizedRoute,
+    savedRouteCoordinates,
+    saveOptimizedRoute,
+    clearOptimizedRoute,
+    hasSavedRoute
+  } = useOrders();
+  const mapRef = useRef(null);
 
-  // Estados
+  // Estados principales
   const [selectedOrder, setSelectedOrder] = useState(null);
   const [modalVisible, setModalVisible] = useState(false);
   const [activeTab, setActiveTab] = useState('Pedidos');
-  
-  // Estados para el Mapa
+  const [optimizedRoute, setOptimizedRoute] = useState([]);
+  const [routeCoordinates, setRouteCoordinates] = useState([]);
+  const [isCalculatingRoute, setIsCalculatingRoute] = useState(false);
   const [location, setLocation] = useState(null);
-  const [errorMsg, setErrorMsg] = useState(null);
   const [mapRegion, setMapRegion] = useState(null);
+  const [isLoadingLocation, setIsLoadingLocation] = useState(true);
+  const [hasRestoredRoute, setHasRestoredRoute] = useState(false);
+  
+  // NUEVO: Estado para controlar primera carga
+  const [hasLoadedRouteBefore, setHasLoadedRouteBefore] = useState(false);
+  const [isCheckingFirstLoad, setIsCheckingFirstLoad] = useState(true);
 
-  // Filtrado de pedidos
-  const filteredOrders = orders.filter(order => 
-    districtFilter === 'TODOS' ? true : order.distrito === districtFilter
-  );
-
-  // Obtener ubicación al cargar
+  // Verificar si es la primera vez que se carga una ruta
   useEffect(() => {
-    (async () => {
-      let { status } = await Location.requestForegroundPermissionsAsync();
-      if (status !== 'granted') {
-        setErrorMsg('Permiso de ubicación denegado');
-        Alert.alert("Permiso denegado", "Necesitamos tu ubicación para mostrar el mapa.");
-        return;
-      }
-
-      let currentLocation = await Location.getCurrentPositionAsync({});
-      setLocation(currentLocation);
-      
-      // Centrar el mapa en el usuario
-      setMapRegion({
-        latitude: currentLocation.coords.latitude,
-        longitude: currentLocation.coords.longitude,
-        latitudeDelta: 0.015, // Zoom nivel calle
-        longitudeDelta: 0.015,
-      });
-    })();
+    checkIfFirstLoad();
   }, []);
 
-  const handleOrderPress = (order) => {
-    setSelectedOrder(order);
-    setModalVisible(true);
+  const checkIfFirstLoad = async () => {
+    try {
+      const hasLoaded = await AsyncStorage.getItem('hasLoadedRouteBefore');
+      console.log('¿Ha cargado ruta antes?:', hasLoaded);
+      setHasLoadedRouteBefore(hasLoaded === 'true');
+    } catch (error) {
+      console.error('Error verificando primera carga:', error);
+    } finally {
+      setIsCheckingFirstLoad(false);
+    }
   };
 
-  const handleCloseModal = () => {
-    setModalVisible(false);
-    setSelectedOrder(null);
-  };
+  // CARGAR RUTA OPTIMIZADA GUARDADA AL INICIAR
+  useEffect(() => {
+    const loadSavedRoute = async () => {
+      if (savedOptimizedRoute.length > 0 && !hasRestoredRoute && !isCheckingFirstLoad) {
+        console.log('Cargando ruta optimizada guardada:', savedOptimizedRoute.length, 'pedidos');
+        
+        setOptimizedRoute(savedOptimizedRoute);
+        
+        if (savedRouteCoordinates.length > 0) {
+          setRouteCoordinates(savedRouteCoordinates);
+        }
+        
+        setHasRestoredRoute(true);
+        
+        // Determinar qué mensaje mostrar basado en si es primera carga o no
+        const message = hasLoadedRouteBefore 
+          ? `✅ Ruta Restaurada\nSe cargó la ruta optimizada guardada con ${savedOptimizedRoute.length} pedidos`
+          : `🚀 Ruta Cargada\nSe ha cargado la ruta optimizada con ${savedOptimizedRoute.length} pedidos`;
+        
+        // Solo mostrar alerta si NO es la primera vez
+        if (hasLoadedRouteBefore) {
+          setTimeout(() => {
+            Alert.alert(
+              hasLoadedRouteBefore ? '✅ Ruta Restaurada' : '🚀 Ruta Cargada',
+              message,
+              [{ text: 'OK' }]
+            );
+          }, 500);
+        }
+        
+        // Marcar que ya ha cargado una ruta antes (si es la primera vez)
+        if (!hasLoadedRouteBefore) {
+          await AsyncStorage.setItem('hasLoadedRouteBefore', 'true');
+          setHasLoadedRouteBefore(true);
+        }
+      }
+    };
+    
+    loadSavedRoute();
+  }, [savedOptimizedRoute, savedRouteCoordinates, hasRestoredRoute, hasLoadedRouteBefore, isCheckingFirstLoad]);
 
-  // Renderizado del contenido de la lista
-  const renderListContent = () => (
-    <ScrollView style={styles.scrollContent} showsVerticalScrollIndicator={false}>
-      <LogoContainer />
-      <View style={styles.listContainer}>
-        <View style={styles.listHeader}>
-          <Text style={[styles.columnHeader, { flex: 0.2 }]}>Orden</Text>
-          <Text style={[styles.columnHeader, { flex: 0.6 }]}>Pedido</Text>
-          <Text style={[styles.columnHeader, { flex: 0.2, textAlign: 'center' }]}>Status</Text>
-        </View>
+  // Función para convertir un pedido a formato serializable
+  const makeOrderSerializable = useCallback((order) => {
+    if (!order) return null;
+    
+    return {
+      ...order,
+      date: typeof order.date === 'string' ? order.date : 
+            order.date instanceof Date ? order.date.toISOString() : 
+            new Date().toISOString(),
+      coordinate: order.coordinate ? {
+        latitude: Number(order.coordinate.latitude),
+        longitude: Number(order.coordinate.longitude)
+      } : null
+    };
+  }, []);
 
-        {filteredOrders.map((order, index) => (
-          <TouchableOpacity 
-            key={order.id || index} 
-            style={styles.row}
-            onPress={() => handleOrderPress(order)}
-            activeOpacity={0.7}
-          >
-            <Text style={[styles.cellText, { flex: 0.2, fontWeight: 'bold' }]}>
-              {index + 1}
-            </Text>
-            
-            <View style={{ flex: 0.6 }}>
-              <Text style={styles.clientText} numberOfLines={1}>
-                {order.cliente || 'Cliente'}
-              </Text>
-              <Text style={styles.addressText} numberOfLines={2}>
-                {order.informacionContacto?.direccion || 'Sin dirección'}
-              </Text>
-              <Text style={styles.districtText}>
-                {order.distrito}
-              </Text>
-            </View>
-
-            <View style={{ flex: 0.2, alignItems: 'center' }}>
-              {order.estado === 'Entregado' ? (
-                <Ionicons name="checkmark-circle" size={24} color="#27ae60" />
-              ) : (
-                <Ionicons name="time-outline" size={24} color="#5CE1E6" />
-              )}
-            </View>
-          </TouchableOpacity>
-        ))}
-
-        {filteredOrders.length === 0 && (
-          <Text style={styles.emptyText}>No hay pedidos en este distrito.</Text>
-        )}
-
-        <TouchableOpacity style={styles.enrutarButton}>
-          <Text style={styles.enrutarText}>ENRUTAR</Text>
-        </TouchableOpacity>
-      </View>
-    </ScrollView>
+  // DATOS PROCESADOS
+  const filteredOrders = useMemo(() => 
+    orders.filter(order => 
+      districtFilter === 'TODOS' ? true : order.distrito === districtFilter
+    ), [orders, districtFilter]
   );
 
-  // Renderizado del Mapa
-  const renderMapContent = () => {
-    if (!location || !mapRegion) {
-      return (
-        <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color="#5CE1E6" />
-          <Text style={{marginTop: 10}}>Obteniendo ubicación...</Text>
-        </View>
+  const ordersWithStableCoords = useMemo(() => {
+    if (filteredOrders.length === 0) return [];
+    
+    return filteredOrders.map(order => {
+      const direccion = order.informacionContacto?.direccion || order.direccion || '';
+      const telefono = order.informacionContacto?.telefono || order.telefono || '';
+      const cliente = order.cliente || '';
+      
+      const serializableOrder = {
+        ...order,
+        informacionContacto: {
+          direccion: direccion,
+          telefono: telefono,
+          ...order.informacionContacto
+        },
+        coordinate: order.coordinate?.latitude && order.coordinate?.longitude 
+          ? {
+              latitude: Number(order.coordinate.latitude),
+              longitude: Number(order.coordinate.longitude)
+            }
+          : generateStableCoordinate(
+              (direccion || cliente || '') + order.id,
+              order.distrito || ''
+            ),
+        date: typeof order.date === 'string' ? order.date : 
+              order.date instanceof Date ? order.date.toISOString() : 
+              new Date().toISOString()
+      };
+      
+      return serializableOrder;
+    });
+  }, [filteredOrders]);
+
+  // Función para actualizar un pedido en la ruta optimizada
+  const updateOrderInRoute = useCallback((orderId, updates) => {
+    setOptimizedRoute(prevRoute => {
+      const updatedRoute = prevRoute.map(order => 
+        order.id === orderId ? { ...order, ...updates } : order
       );
+      
+      // Guardar automáticamente la ruta actualizada
+      if (updatedRoute.length > 0) {
+        saveOptimizedRoute(updatedRoute, routeCoordinates);
+      }
+      
+      return updatedRoute;
+    });
+  }, [saveOptimizedRoute, routeCoordinates]);
+
+  // Obtener ubicación
+  useEffect(() => {
+    let isMounted = true;
+    
+    (async () => {
+      try {
+        setIsLoadingLocation(true);
+        
+        const { status } = await Location.requestForegroundPermissionsAsync();
+        if (status !== 'granted') {
+          Alert.alert(
+            "Permiso denegado", 
+            "Necesitamos tu ubicación para mostrar el mapa. Puedes activarlo en Configuración."
+          );
+          if (isMounted) setIsLoadingLocation(false);
+          return;
+        }
+
+        const currentLocation = await Location.getCurrentPositionAsync({
+          accuracy: Location.Accuracy.Balanced,
+          timeout: 5000
+        });
+        
+        if (isMounted) {
+          setLocation(currentLocation);
+          setMapRegion({
+            latitude: currentLocation.coords.latitude,
+            longitude: currentLocation.coords.longitude,
+            latitudeDelta: 0.015,
+            longitudeDelta: 0.015,
+          });
+          setIsLoadingLocation(false);
+        }
+      } catch (error) {
+        console.error("Error obteniendo ubicación:", error);
+        if (isMounted) {
+          Alert.alert("Error", "No se pudo obtener la ubicación. Usando ubicación por defecto.");
+          setMapRegion({
+            latitude: -12.046374,
+            longitude: -77.042793,
+            latitudeDelta: 0.05,
+            longitudeDelta: 0.05,
+          });
+          setIsLoadingLocation(false);
+        }
+      }
+    })();
+
+    return () => { isMounted = false; };
+  }, []);
+
+  // Hook de optimización
+  const { optimizeRoute } = useRouteOptimizer();
+
+  // Handler para cambiar a mapa después de optimizar
+  const handleMapTabPress = useCallback((coordsArray) => {
+    setActiveTab('Mapa');
+    if (mapRef.current && coordsArray && coordsArray.length > 0) {
+      setTimeout(() => {
+        mapRef.current.fitToCoordinates(coordsArray, {
+          edgePadding: { top: 50, right: 50, bottom: 50, left: 50 },
+          animated: true,
+        });
+      }, 100);
+    }
+  }, []);
+
+  // Función de optimización CORREGIDA - VERSIÓN QUE SÍ GUARDA
+  const handleOptimizeRoute = useCallback(async () => {
+    if (!location || ordersWithStableCoords.length === 0) {
+      Alert.alert('Error', 'No hay pedidos con coordenadas estables para optimizar');
+      return;
     }
 
-    return (
-      <View style={styles.mapContainer}>
-        <MapView
-          style={styles.map}
-          provider={PROVIDER_DEFAULT}
-          region={mapRegion}
-          showsUserLocation={true} // Muestra el punto azul de tu ubicación
-          showsMyLocationButton={true}
-        >
-          {filteredOrders.map((order, index) => {
-            // Solo renderizar si tiene coordenadas
-            if (order.coordinate) {
-              return (
-                <Marker
-                  key={order.id || index}
-                  coordinate={order.coordinate}
-                  title={order.cliente}
-                  description={order.informacionContacto.direccion}
-                  pinColor={order.estado === 'Entregado' ? 'green' : 'red'}
-                  onCalloutPress={() => handleOrderPress(order)}
-                />
-              );
+    setIsCalculatingRoute(true);
+    
+    try {
+      // Función callback que se ejecutará cuando la optimización termine
+      const onOptimizationComplete = async (optimizedRouteResult, routeCoords) => {
+        console.log('Optimización completada, resultados:', {
+          pedidos: optimizedRouteResult.length,
+          coordenadas: routeCoords.length
+        });
+        
+        // 1. Actualizar estados locales
+        setOptimizedRoute(optimizedRouteResult);
+        setRouteCoordinates(routeCoords);
+        
+        // 2. Guardar la ruta optimizada en AsyncStorage
+        if (optimizedRouteResult.length > 0) {
+          console.log('Guardando ruta en AsyncStorage...');
+          const saveSuccess = await saveOptimizedRoute(optimizedRouteResult, routeCoords);
+          
+          if (saveSuccess) {
+            // Determinar mensaje según si es primera optimización o no
+            const isFirstOptimization = !hasLoadedRouteBefore;
+            const alertTitle = isFirstOptimization ? '🚀 Ruta Optimizada' : '✅ Ruta Optimizada y Guardada';
+            const alertMessage = isFirstOptimization 
+              ? `Se optimizaron ${optimizedRouteResult.length} pedidos. La ruta se guardará para futuras sesiones.`
+              : `Se optimizaron ${optimizedRouteResult.length} pedidos y se guardó la ruta para futuras sesiones.`;
+            
+            Alert.alert(alertTitle, alertMessage);
+            
+            // Marcar que ya ha optimizado una ruta
+            if (isFirstOptimization) {
+              await AsyncStorage.setItem('hasLoadedRouteBefore', 'true');
+              setHasLoadedRouteBefore(true);
             }
-            return null;
-          })}
-        </MapView>
+          }
+        }
+        
+        // 3. Cambiar a pestaña de mapa si hay coordenadas
+        if (routeCoords.length > 0) {
+          handleMapTabPress(routeCoords);
+        }
+      };
+
+      // Llamar a la función de optimización con el callback
+      await optimizeRoute(
+        location,
+        ordersWithStableCoords,
+        onOptimizationComplete,
+        setIsCalculatingRoute
+      );
+
+    } catch (error) {
+      console.error('Error en handleOptimizeRoute:', error);
+      Alert.alert('Error', 'No se pudo calcular o guardar la ruta');
+    }
+  }, [location, ordersWithStableCoords, optimizeRoute, saveOptimizedRoute, handleMapTabPress, hasLoadedRouteBefore]);
+
+  // Función para cargar ruta guardada manualmente - MODIFICADA
+  const handleLoadSavedRoute = useCallback(async () => {
+    if (savedOptimizedRoute.length > 0) {
+      setOptimizedRoute(savedOptimizedRoute);
+      setRouteCoordinates(savedRouteCoordinates);
+      setHasRestoredRoute(true);
+      
+      // Determinar mensaje según si es primera vez o no
+      const message = hasLoadedRouteBefore 
+        ? `✅ Ruta Restaurada\nSe cargó la ruta guardada con ${savedOptimizedRoute.length} pedidos`
+        : `🚀 Ruta Cargada\nSe ha cargado la ruta optimizada con ${savedOptimizedRoute.length} pedidos`;
+      
+      Alert.alert(
+        hasLoadedRouteBefore ? '✅ Ruta Restaurada' : '🚀 Ruta Cargada',
+        message,
+        [{ text: 'OK' }]
+      );
+      
+      // Si es la primera vez, marcar que ya cargó una ruta
+      if (!hasLoadedRouteBefore) {
+        await AsyncStorage.setItem('hasLoadedRouteBefore', 'true');
+        setHasLoadedRouteBefore(true);
+      }
+      
+      // Cambiar a la pestaña de mapa
+      setActiveTab('Mapa');
+    } else {
+      Alert.alert('ℹ️ Sin Ruta Guardada', 'No hay una ruta optimizada guardada. Optimiza una ruta primero.');
+    }
+  }, [savedOptimizedRoute, savedRouteCoordinates, hasLoadedRouteBefore]);
+
+  // Handlers
+  const handleOrderPress = useCallback((order) => {
+    setSelectedOrder(makeOrderSerializable(order));
+    setModalVisible(true);
+  }, [makeOrderSerializable]);
+
+  const handleCloseModal = useCallback(() => {
+    setModalVisible(false);
+    setSelectedOrder(null);
+  }, []);
+
+  // Función para marcar pedido como entregado desde el modal
+  const handleMarkDelivered = useCallback((orderId) => {
+    if (orderId) {
+      markAsDelivered(orderId);
+      // Actualizar también en la ruta optimizada si está presente
+      updateOrderInRoute(orderId, { estado: 'entregado' });
+    }
+  }, [markAsDelivered, updateOrderInRoute]);
+
+  const handleForceRecalculate = useCallback(async () => {
+    Alert.alert(
+      '🔄 Recalcular Ruta',
+      '¿Recalcular la ruta optimizada? Esto sobrescribirá la ruta guardada.',
+      [
+        { text: 'Cancelar', style: 'cancel' },
+        { 
+          text: 'Recalcular', 
+          onPress: async () => {
+            setOptimizedRoute([]);
+            setRouteCoordinates([]);
+            await handleOptimizeRoute();
+          }
+        }
+      ]
+    );
+  }, [handleOptimizeRoute]);
+
+  const handleResetRoute = useCallback(() => {
+    Alert.alert(
+      '🗑️ Limpiar Ruta',
+      '¿Eliminar la ruta optimizada? Esto también borrará la ruta guardada.',
+      [
+        { text: 'Cancelar', style: 'cancel' },
+        { 
+          text: 'Limpiar', 
+          style: 'destructive',
+          onPress: async () => {
+            setOptimizedRoute([]);
+            setRouteCoordinates([]);
+            await clearOptimizedRoute();
+            setHasRestoredRoute(false);
+            Alert.alert('✅ Ruta Eliminada', 'La ruta optimizada se ha eliminado correctamente.');
+          }
+        }
+      ]
+    );
+  }, [clearOptimizedRoute]);
+
+  const handleCenterMap = useCallback(() => {
+    if (mapRef.current && location) {
+      mapRef.current.animateToRegion({
+        latitude: location.coords.latitude,
+        longitude: location.coords.longitude,
+        latitudeDelta: 0.015,
+        longitudeDelta: 0.015,
+      }, 1000);
+    } else if (mapRef.current && mapRegion) {
+      mapRef.current.animateToRegion(mapRegion, 1000);
+    }
+  }, [location, mapRegion]);
+
+  // Función para manejar la eliminación de pedidos
+  const handleDeleteOrder = useCallback(async (orderId) => {
+    Alert.alert(
+      "Eliminar Pedido",
+      "¿Estás seguro de que quieres eliminar este pedido?",
+      [
+        {
+          text: "Cancelar",
+          style: "cancel"
+        },
+        {
+          text: "Eliminar",
+          style: "destructive",
+          onPress: async () => {
+            // Eliminar del contexto
+            await deleteOrder(orderId);
+            
+            // Si el pedido eliminado estaba en la ruta optimizada, actualizar la ruta
+            if (optimizedRoute.some(order => order.id === orderId)) {
+              const updatedRoute = optimizedRoute.filter(order => order.id !== orderId);
+              setOptimizedRoute(updatedRoute);
+              
+              // También actualizar la ruta guardada
+              if (updatedRoute.length > 0) {
+                await saveOptimizedRoute(updatedRoute, routeCoordinates);
+              } else {
+                // Si no quedan pedidos, limpiar todo
+                setRouteCoordinates([]);
+                await clearOptimizedRoute();
+              }
+            }
+          }
+        }
+      ]
+    );
+  }, [deleteOrder, optimizedRoute, routeCoordinates, saveOptimizedRoute, clearOptimizedRoute]);
+  
+  // Componente Tab
+  const TabButton = ({ icon, label, tab, onPress }) => (
+    <TouchableOpacity 
+      style={styles.tabButton} 
+      onPress={onPress || (() => setActiveTab(tab))}
+    >
+      <Text style={[styles.tabText, activeTab === tab && styles.activeTabText]}>
+        <Ionicons name={icon} size={18} /> {label}
+      </Text>
+      {activeTab === tab && <View style={styles.activeLine} />}
+    </TouchableOpacity>
+  );
+
+  // Mostrar loading mientras se obtiene la ubicación
+  if (isLoadingLocation && activeTab === 'Mapa') {
+    return (
+      <View style={styles.container}>
+        <StatusBar style="dark" />
+        <Header navigation={navigation} title="PEDIDOS" showBack={true} />
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color="#007bff" />
+          <Text style={styles.loadingText}>Obteniendo ubicación...</Text>
+        </View>
       </View>
     );
-  };
+  }
 
   return (
     <View style={styles.container}>
@@ -167,40 +488,69 @@ const PedidosScreen = ({ navigation, route }) => {
       
       <Header navigation={navigation} title="PEDIDOS" showBack={true} />
       
-      {/* Tabs fuera del ScrollView para que queden fijos arriba */}
       <View style={styles.fixedHeader}>
         <View style={styles.tabContainer}>
-          <TouchableOpacity 
-            style={styles.tabButton} 
-            onPress={() => setActiveTab('Pedidos')}
-          >
-            <Text style={[styles.tabText, activeTab === 'Pedidos' && styles.activeTabText]}>
-              Pedidos
-            </Text>
-            {activeTab === 'Pedidos' && <View style={styles.activeLine} />}
-          </TouchableOpacity>
-
-          <TouchableOpacity 
-            style={styles.tabButton} 
+          <TabButton icon="list-outline" label="Pedidos" tab="Pedidos" />
+          <TabButton 
+            icon="map-outline" 
+            label="Mapa" 
+            tab="Mapa" 
             onPress={() => setActiveTab('Mapa')}
-          >
-            <Text style={[styles.tabText, activeTab === 'Mapa' && styles.activeTabText]}>
-              Mapa
-            </Text>
-            {activeTab === 'Mapa' && <View style={styles.activeLine} />}
-          </TouchableOpacity>
+          />
         </View>
+
+        {/* Botón para cargar ruta guardada */}
+        {savedOptimizedRoute.length > 0 && optimizedRoute.length === 0 && (
+          <TouchableOpacity 
+            style={styles.loadRouteButton}
+            onPress={handleLoadSavedRoute}
+          >
+            <Ionicons name="download-outline" size={18} color="#FFF" />
+            <Text style={styles.loadRouteText}>
+              {hasLoadedRouteBefore ? ' Cargar Ruta Guardada' : ' Cargar Ruta'}
+            </Text>
+          </TouchableOpacity>
+        )}
       </View>
 
-      {/* Contenido Cambiante */}
       <View style={styles.contentArea}>
-        {activeTab === 'Pedidos' ? renderListContent() : renderMapContent()}
+        {activeTab === 'Pedidos' ? (
+          <OrderList
+            optimizedRoute={optimizedRoute}
+            ordersWithStableCoords={ordersWithStableCoords}
+            isCalculatingRoute={isCalculatingRoute}
+            onOptimizeRoute={handleOptimizeRoute}
+            onForceRecalculate={handleForceRecalculate}
+            onResetRoute={handleResetRoute}
+            onOrderPress={handleOrderPress}
+            onDeleteOrder={handleDeleteOrder}
+            hasSavedRoute={hasSavedRoute}
+            onLoadSavedRoute={handleLoadSavedRoute}
+          />
+        ) : (
+          <MapViewer
+            location={location}
+            mapRegion={mapRegion}
+            optimizedRoute={optimizedRoute}
+            ordersWithStableCoords={ordersWithStableCoords}
+            routeCoordinates={routeCoordinates}
+            onOrderPress={handleOrderPress}
+            onCenterMap={handleCenterMap}
+            mapRef={mapRef}
+          />
+        )}
       </View>
 
       <OrderDetailsModal
         visible={modalVisible}
         order={selectedOrder}
         onClose={handleCloseModal}
+        onMarkDelivered={() => {
+          if (selectedOrder?.id) {
+            handleMarkDelivered(selectedOrder.id);
+          }
+          handleCloseModal();
+        }}
       />
 
       <BottomBar 
@@ -211,87 +561,5 @@ const PedidosScreen = ({ navigation, route }) => {
     </View>
   );
 };
-
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#FFFFFF' },
-  
-  fixedHeader: {
-    backgroundColor: '#FFF',
-    paddingTop: 10,
-    zIndex: 10,
-  },
-  contentArea: {
-    flex: 1, // Ocupa el espacio restante
-  },
-  
-  // Estilos del Mapa
-  mapContainer: {
-    flex: 1,
-    width: '100%',
-    height: '100%',
-  },
-  map: {
-    width: '100%',
-    height: '100%',
-  },
-  loadingContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-
-  // Tabs
-  tabContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginBottom: 10,
-    paddingHorizontal: 40,
-  },
-  tabButton: { alignItems: 'center', paddingBottom: 5 },
-  tabText: { fontSize: 16, color: '#999', fontWeight: '500' },
-  activeTabText: { color: '#007AFF', fontWeight: 'bold' },
-  activeLine: { width: '100%', height: 2, backgroundColor: '#007AFF', marginTop: 4 },
-
-  // Lista
-  scrollContent: { paddingHorizontal: 20 },
-  listContainer: { paddingBottom: 100 },
-  listHeader: {
-    flexDirection: 'row',
-    marginBottom: 15,
-    paddingBottom: 10,
-    borderBottomWidth: 1,
-    borderBottomColor: '#F0F0F0',
-  },
-  columnHeader: { fontSize: 16, fontWeight: 'bold', color: '#000' },
-  row: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 15,
-    paddingVertical: 10,
-    borderBottomWidth: 1,
-    borderBottomColor: '#F9F9F9',
-  },
-  cellText: { fontSize: 14, color: '#333' },
-  clientText: { fontSize: 14, fontWeight: 'bold', color: '#333' },
-  addressText: { fontSize: 13, color: '#666', marginTop: 2 },
-  districtText: { fontSize: 12, color: '#999', marginTop: 2 },
-  emptyText: { textAlign: 'center', color: '#999', marginTop: 20 },
-  
-  // Botón Enrutar
-  enrutarButton: {
-    backgroundColor: '#5CE1E6',
-    borderRadius: 25,
-    paddingVertical: 15,
-    alignItems: 'center',
-    marginTop: 30,
-    marginBottom: 20,
-    shadowColor: "#5CE1E6",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 4.65,
-    elevation: 5,
-  },
-  enrutarText: { color: '#FFF', fontSize: 18, fontWeight: 'bold', letterSpacing: 1 },
-});
 
 export default PedidosScreen;

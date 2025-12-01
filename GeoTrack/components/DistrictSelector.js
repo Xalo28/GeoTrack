@@ -32,6 +32,7 @@ const DISTRICTS = [
   'SAN BARTOLO',
   'SANTA MARÍA DEL MAR',
   'PUCUSANA'
+  
 ];
 
 const DistrictSelector = ({ 

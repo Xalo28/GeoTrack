@@ -1,11 +1,17 @@
 import React from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import { View, Image, StyleSheet } from 'react-native';
 
 const LogoContainer = () => {
   return (
     <View style={styles.logoContainer}>
-      <View style={styles.logoPlaceholder}>
-        <Text style={styles.logoText}>LOGO SAVA</Text>
+      <View style={styles.imageWrapper}>
+        <View style={styles.imageContainer}>
+          <Image 
+            source={require('../assets/images/LogoSavaSAC.jpg')}
+            style={styles.logoImage}
+            resizeMode="contain"
+          />
+        </View>
       </View>
     </View>
   );
@@ -17,9 +23,9 @@ const styles = StyleSheet.create({
     marginTop: 80,
     marginBottom: 40,
   },
-  logoPlaceholder: {
-    width: 120,
-    height: 120,
+  imageWrapper: {
+    width: 124,
+    height: 124,
     backgroundColor: '#F0F0F0',
     borderRadius: 10,
     justifyContent: 'center',
@@ -28,10 +34,18 @@ const styles = StyleSheet.create({
     borderColor: '#5CE1E6',
     borderStyle: 'dashed',
   },
-  logoText: {
-    color: '#999',
-    fontSize: 12,
-    fontWeight: '600',
+  imageContainer: {
+    width: 120,
+    height: 120,
+    backgroundColor: 'white',
+    borderRadius: 8,
+    overflow: 'hidden',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  logoImage: {
+    width: '100%',
+    height: '100%',
   },
 });
 
