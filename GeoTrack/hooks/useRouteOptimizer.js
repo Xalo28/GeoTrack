@@ -22,7 +22,7 @@ export const useRouteOptimizer = () => {
     setIsCalculatingRoute(true);
     
     try {
-      // 1. Geocodificar (ya lo tienes)
+      // 1. Geocodificar direcciones
       const geocodedOrders = await geocodeAllAddresses(rawOrders);
       
       // 2. Punto de inicio
@@ -36,21 +36,38 @@ export const useRouteOptimizer = () => {
       const result = await calculateOptimizedRouteWithOSRM(startPoint, geocodedOrders);
       
       if (result.success) {
-        // 4. Obtener geometría de la ruta para el mapa
-        const routeCoords = await getRouteGeometry(
-          startPoint,
-          result.optimizedOrders.map(o => o.coordinate)
-        );
+        // 4. VERIFICACIÓN: Mostrar comparación de órdenes
+        console.log('🔍 COMPARACIÓN DE ORDENES:');
+        console.log('Orden original de entrada:');
+        rawOrders.forEach((order, idx) => {
+          console.log(`${idx + 1}. ${order.informacionContacto?.direccion?.substring(0, 30) || order.direccion?.substring(0, 30) || 'Sin dirección'}`);
+        });
         
-        // 5. Callback
+        console.log('\nOrden después de geocodificación:');
+        geocodedOrders.forEach((order, idx) => {
+          console.log(`${idx + 1}. ${order.realAddress?.substring(0, 30) || 'Sin dirección'}`);
+        });
+        
+        console.log('\n✅ Orden optimizado final:');
+        result.optimizedOrders.forEach((order, idx) => {
+          console.log(`${idx + 1}. ${order.realAddress?.substring(0, 30) || 'Sin dirección'} ${order.originalIndex !== undefined ? `(original: ${order.originalIndex + 1})` : ''}`);
+        });
+        
+        // 5. Callback con resultados
         if (onOptimizationComplete) {
-          await onOptimizationComplete(result.optimizedOrders, routeCoords);
+          await onOptimizationComplete(result.optimizedOrders, result.routeCoordinates);
+        }
+        
+        // 6. Si hay función para mostrar mapa, llamarla
+        if (onMapTabPress && result.routeCoordinates.length > 0) {
+          onMapTabPress();
         }
         
         return {
           success: true,
           optimizedRoute: result.optimizedOrders,
-          routeCoordinates: routeCoords,
+          routeCoordinates: result.routeCoordinates,
+          detailedRoute: result.detailedRoute,
           totalDuration: result.totalDuration
         };
       }
