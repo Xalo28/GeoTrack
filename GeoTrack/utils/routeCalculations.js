@@ -1,4 +1,4 @@
-// utils/routeCalculations.js - VERSIÓN CORREGIDA
+// utils/routeCalculations.js 
 import axios from 'axios';
 
 // ==================== FUNCIONES BÁSICAS ====================
@@ -50,7 +50,32 @@ export const getOSRMMatrix = async (coordinates) => {
     return null;
   }
 };
-
+// ==================== FUNCIÓN PARA DISTANCIA PRECISA ====================
+export const getPreciseDistance = (points) => {
+  if (!points || points.length < 2) return 0;
+  
+  let totalDistance = 0;
+  for (let i = 0; i < points.length - 1; i++) {
+    const point1 = points[i];
+    const point2 = points[i + 1];
+    
+    if (point1 && point2 && 
+        point1.latitude && point1.longitude &&
+        point2.latitude && point2.longitude) {
+      
+      const distance = calculateDistance(
+        point1.latitude, point1.longitude,
+        point2.latitude, point2.longitude
+      );
+      
+      if (!isNaN(distance)) {
+        totalDistance += distance;
+      }
+    }
+  }
+  
+  return totalDistance;
+};
 // Obtener ruta detallada entre puntos
 export const getOSRMRoute = async (coordinates) => {
   try {

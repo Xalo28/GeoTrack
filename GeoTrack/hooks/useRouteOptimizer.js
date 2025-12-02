@@ -1,4 +1,4 @@
-// hooks/useRouteOptimizer.js (ACTUALIZADO)
+// hooks/useRouteOptimizer.js 
 import { useCallback } from 'react';
 import { calculateOptimizedRouteWithOSRM } from '../utils/advancedRouteCalculations';
 import { geocodeAllAddresses } from '../utils/geocoding';
