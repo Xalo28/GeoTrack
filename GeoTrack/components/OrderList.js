@@ -58,44 +58,19 @@ const SwipeableRow = ({ children, onDelete, onOrderPress, order, isCalculating }
   });
 
   const handleDelete = () => {
-    Alert.alert(
-      "🗑️ Eliminar Pedido",
-      `¿Estás seguro de eliminar el pedido de ${order.cliente}?`,
-      [
-        { 
-          text: "Cancelar", 
-          style: "cancel",
-          onPress: () => {
-            // Cerrar el swipe
-            Animated.spring(pan, {
-              toValue: { x: 0, y: 0 },
-              useNativeDriver: false,
-              friction: 8,
-            }).start();
-            setShowDelete(false);
-          }
-        },
-        { 
-          text: "Eliminar", 
-          style: "destructive",
-          onPress: () => {
-            // Animación de eliminación
-            Animated.timing(pan, {
-              toValue: { x: -width, y: 0 },
-              duration: 300,
-              useNativeDriver: false,
-            }).start(() => {
-              onDelete(order.id);
-              // Reset después de eliminar
-              setTimeout(() => {
-                pan.setValue({ x: 0, y: 0 });
-                setShowDelete(false);
-              }, 100);
-            });
-          }
-        }
-      ]
-    );
+    // ✅ SOLO llamar a onDelete sin mostrar alerta aquí
+    if (onDelete && order && order.id) {
+      onDelete(order.id);
+    }
+    
+    // Cerrar el swipe después de llamar a onDelete
+    Animated.spring(pan, {
+      toValue: { x: 0, y: 0 },
+      useNativeDriver: false,
+      friction: 8,
+    }).start(() => {
+      setShowDelete(false);
+    });
   };
 
   const handleCloseSwipe = () => {

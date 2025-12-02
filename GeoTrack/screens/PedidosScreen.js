@@ -18,10 +18,23 @@ import OrderDetailsModal from '../components/OrderDetailsModal';
 import OrderList from '../components/OrderList';
 import MapViewer from '../components/MapViewer';
 import { useOrders } from '../context/OrdersContext';
-import { useRouteOptimizer } from '../hooks/useRouteOptimizer'; // CAMBIO IMPORTANTE
+import { useRouteOptimizer } from '../hooks/useRouteOptimizer';
 import styles from '../styles/PedidosStyles';
 
 const { width, height } = Dimensions.get('window');
+
+// Definir TabButton como componente separado ANTES de PedidosScreen
+const TabButton = ({ icon, label, tab, activeTab, onPress }) => (
+  <TouchableOpacity 
+    style={styles.tabButton} 
+    onPress={onPress || (() => {})}
+  >
+    <Text style={[styles.tabText, activeTab === tab && styles.activeTabText]}>
+      <Ionicons name={icon} size={18} /> {label}
+    </Text>
+    {activeTab === tab && <View style={styles.activeLine} />}
+  </TouchableOpacity>
+);
 
 const PedidosScreen = ({ navigation, route }) => {
   const { districtFilter = 'TODOS' } = route.params || {};
@@ -53,7 +66,7 @@ const PedidosScreen = ({ navigation, route }) => {
   const [hasLoadedRouteBefore, setHasLoadedRouteBefore] = useState(false);
   const [isCheckingFirstLoad, setIsCheckingFirstLoad] = useState(true);
 
-  // Hook de optimización - ¡AHORA VIENE DE HOOKS!
+  // Hook de optimización
   const { optimizeRoute } = useRouteOptimizer();
 
   // Verificar si es la primera vez que se carga una ruta
@@ -73,11 +86,11 @@ const PedidosScreen = ({ navigation, route }) => {
     }
   };
 
-  // CARGAR RUTA OPTIMIZADA GUARDADA AL INICIAR
+  // CARGAR RUTA OPTIMIZADA GUARDADA AL INICIAR - SIN ALERTA
   useEffect(() => {
     const loadSavedRoute = async () => {
       if (savedOptimizedRoute.length > 0 && !hasRestoredRoute && !isCheckingFirstLoad) {
-        console.log('Cargando ruta optimizada guardada:', savedOptimizedRoute.length, 'pedidos');
+        console.log('📂 Cargando ruta optimizada guardada automáticamente:', savedOptimizedRoute.length, 'pedidos');
         
         setOptimizedRoute(savedOptimizedRoute);
         
@@ -86,17 +99,6 @@ const PedidosScreen = ({ navigation, route }) => {
         }
         
         setHasRestoredRoute(true);
-        
-        // Solo mostrar alerta si NO es la primera vez
-        if (hasLoadedRouteBefore) {
-          setTimeout(() => {
-            Alert.alert(
-              '✅ Ruta Restaurada',
-              `Se cargó la ruta optimizada guardada con ${savedOptimizedRoute.length} pedidos`,
-              [{ text: 'OK' }]
-            );
-          }, 500);
-        }
         
         // Marcar que ya ha cargado una ruta antes (si es la primera vez)
         if (!hasLoadedRouteBefore) {
@@ -262,7 +264,7 @@ const PedidosScreen = ({ navigation, route }) => {
     }
   }, []);
 
-  // NUEVA: Función de optimización que usa direcciones reales
+  // Función de optimización que usa direcciones reales
   const handleOptimizeRoute = useCallback(async () => {
     console.log('🔄 Iniciando optimización con direcciones reales...');
     
@@ -363,13 +365,14 @@ const PedidosScreen = ({ navigation, route }) => {
     }
   }, [location, ordersWithRealAddresses, optimizeRoute, saveOptimizedRoute, handleMapTabPress]);
 
-  // Función para cargar ruta guardada manualmente
+  // Función para cargar ruta guardada manualmente (CON ALERTA)
   const handleLoadSavedRoute = useCallback(async () => {
     if (savedOptimizedRoute.length > 0) {
       setOptimizedRoute(savedOptimizedRoute);
       setRouteCoordinates(savedRouteCoordinates);
       setHasRestoredRoute(true);
       
+      // MOSTRAR ALERTA SOLO CUANDO SE CARGA MANUALMENTE
       Alert.alert(
         '✅ Ruta Restaurada',
         `Se cargó la ruta guardada con ${savedOptimizedRoute.length} pedidos`,
@@ -472,37 +475,45 @@ const PedidosScreen = ({ navigation, route }) => {
           text: "Eliminar",
           style: "destructive",
           onPress: async () => {
-            await deleteOrder(orderId);
-            
-            if (optimizedRoute.some(order => order.id === orderId)) {
-              const updatedRoute = optimizedRoute.filter(order => order.id !== orderId);
-              setOptimizedRoute(updatedRoute);
+            try {
+              // Primero, eliminar el pedido
+              await deleteOrder(orderId);
               
-              if (updatedRoute.length > 0) {
-                await saveOptimizedRoute(updatedRoute, routeCoordinates);
-              } else {
-                setRouteCoordinates([]);
-                await clearOptimizedRoute();
+              // Luego, actualizar la ruta optimizada si el pedido estaba en ella
+              if (optimizedRoute.some(order => order.id === orderId)) {
+                const updatedRoute = optimizedRoute.filter(order => order.id !== orderId);
+                setOptimizedRoute(updatedRoute);
+                
+                if (updatedRoute.length > 0) {
+                  // Si aún hay pedidos en la ruta, guardar la ruta actualizada
+                  await saveOptimizedRoute(updatedRoute, routeCoordinates);
+                } else {
+                  // Si no quedan pedidos, limpiar todo
+                  setRouteCoordinates([]);
+                  await clearOptimizedRoute();
+                }
               }
+              
+              // Mostrar UNA sola alerta de confirmación
+              Alert.alert(
+                "✅ Pedido Eliminado",
+                "El pedido se ha eliminado correctamente.",
+                [{ text: "OK" }]
+              );
+              
+            } catch (error) {
+              console.error("Error al eliminar pedido:", error);
+              Alert.alert(
+                "❌ Error",
+                "No se pudo eliminar el pedido. Intenta nuevamente.",
+                [{ text: "OK" }]
+              );
             }
           }
         }
       ]
     );
   }, [deleteOrder, optimizedRoute, routeCoordinates, saveOptimizedRoute, clearOptimizedRoute]);
-  
-  // Componente Tab
-  const TabButton = ({ icon, label, tab, onPress }) => (
-    <TouchableOpacity 
-      style={styles.tabButton} 
-      onPress={onPress || (() => setActiveTab(tab))}
-    >
-      <Text style={[styles.tabText, activeTab === tab && styles.activeTabText]}>
-        <Ionicons name={icon} size={18} /> {label}
-      </Text>
-      {activeTab === tab && <View style={styles.activeLine} />}
-    </TouchableOpacity>
-  );
 
   // Mostrar loading mientras se obtiene la ubicación
   if (isLoadingLocation && activeTab === 'Mapa') {
@@ -526,16 +537,23 @@ const PedidosScreen = ({ navigation, route }) => {
       
       <View style={styles.fixedHeader}>
         <View style={styles.tabContainer}>
-          <TabButton icon="list-outline" label="Pedidos" tab="Pedidos" />
+          <TabButton 
+            icon="list-outline" 
+            label="Pedidos" 
+            tab="Pedidos"
+            activeTab={activeTab}
+            onPress={() => setActiveTab('Pedidos')}
+          />
           <TabButton 
             icon="map-outline" 
             label="Mapa" 
-            tab="Mapa" 
+            tab="Mapa"
+            activeTab={activeTab}
             onPress={() => setActiveTab('Mapa')}
           />
         </View>
 
-        {/* Botón para cargar ruta guardada */}
+        {/* Botón para cargar ruta guardada (MANUALMENTE) */}
         {savedOptimizedRoute.length > 0 && optimizedRoute.length === 0 && (
           <TouchableOpacity 
             style={styles.loadRouteButton}
@@ -551,7 +569,7 @@ const PedidosScreen = ({ navigation, route }) => {
         {activeTab === 'Pedidos' ? (
           <OrderList
             optimizedRoute={optimizedRoute}
-            ordersWithStableCoords={ordersWithRealAddresses} // CAMBIADO
+            ordersWithStableCoords={ordersWithRealAddresses}
             isCalculatingRoute={isCalculatingRoute}
             onOptimizeRoute={handleOptimizeRoute}
             onForceRecalculate={handleForceRecalculate}
@@ -566,7 +584,7 @@ const PedidosScreen = ({ navigation, route }) => {
             location={location}
             mapRegion={mapRegion}
             optimizedRoute={optimizedRoute}
-            ordersWithStableCoords={ordersWithRealAddresses} // CAMBIADO
+            ordersWithStableCoords={ordersWithRealAddresses}
             routeCoordinates={routeCoordinates}
             onOrderPress={handleOrderPress}
             onCenterMap={handleCenterMap}

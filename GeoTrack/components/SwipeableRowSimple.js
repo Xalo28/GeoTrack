@@ -14,6 +14,43 @@ const { width } = Dimensions.get('window');
 const SWIPE_THRESHOLD = 80; 
 const ACTION_WIDTH = 80;
 
+// Añade estos valores si no están definidos
+const COLORS = {
+  gray400: '#9CA3AF',
+  gray500: '#6B7280',
+  danger: '#EF4444',
+  secondary: '#6B7280',
+  success: '#10B981',
+  cardBackground: '#FFFFFF'
+};
+
+const SPACING = {
+  '0.5': 2,
+  '2': 8,
+  '2.5': 10,
+  borderRadius: {
+    DEFAULT: 8
+  },
+  shadow: {
+    sm: {
+      shadowColor: '#000',
+      shadowOffset: { width: 0, height: 1 },
+      shadowOpacity: 0.1,
+      shadowRadius: 2,
+      elevation: 2
+    }
+  }
+};
+
+const TYPOGRAPHY = {
+  fontSize: {
+    xs: 12
+  },
+  fontWeight: {
+    semibold: '600'
+  }
+};
+
 const SwipeableRowSimple = ({
   children,
   onDelete,
@@ -78,18 +115,17 @@ const SwipeableRowSimple = ({
   });
 
   const handleDelete = () => {
-    Animated.timing(pan, {
-      toValue: { x: -width, y: 0 },
-      duration: 300,
+    // ✅ SOLO llamar a onDelete sin mostrar alerta aquí
+    if (onDelete) onDelete();
+    
+    // Cerrar el swipe después de llamar a onDelete
+    Animated.spring(pan, {
+      toValue: { x: 0, y: 0 },
       useNativeDriver: false,
+      friction: 8,
     }).start(() => {
-      if (onDelete) onDelete();
-      // Resetear después de eliminar
-      setTimeout(() => {
-        pan.setValue({ x: 0, y: 0 });
-        setShowDelete(false);
-        setShowEdit(false);
-      }, 100);
+      setShowDelete(false);
+      setShowEdit(false);
     });
   };
 
