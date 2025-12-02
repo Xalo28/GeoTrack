@@ -18,8 +18,7 @@ import OrderDetailsModal from '../components/OrderDetailsModal';
 import OrderList from '../components/OrderList';
 import MapViewer from '../components/MapViewer';
 import { useOrders } from '../context/OrdersContext';
-import { generateStableCoordinate } from '../utils/geocoding';
-import { useRouteOptimizer } from '../components/RouteOptimizer';
+import { useRouteOptimizer } from '../hooks/useRouteOptimizer'; // CAMBIO IMPORTANTE
 import styles from '../styles/PedidosStyles';
 
 const { width, height } = Dimensions.get('window');
@@ -50,9 +49,12 @@ const PedidosScreen = ({ navigation, route }) => {
   const [isLoadingLocation, setIsLoadingLocation] = useState(true);
   const [hasRestoredRoute, setHasRestoredRoute] = useState(false);
   
-  // NUEVO: Estado para controlar primera carga
+  // Estado para controlar primera carga
   const [hasLoadedRouteBefore, setHasLoadedRouteBefore] = useState(false);
   const [isCheckingFirstLoad, setIsCheckingFirstLoad] = useState(true);
+
+  // Hook de optimización - ¡AHORA VIENE DE HOOKS!
+  const { optimizeRoute } = useRouteOptimizer();
 
   // Verificar si es la primera vez que se carga una ruta
   useEffect(() => {
@@ -85,17 +87,12 @@ const PedidosScreen = ({ navigation, route }) => {
         
         setHasRestoredRoute(true);
         
-        // Determinar qué mensaje mostrar basado en si es primera carga o no
-        const message = hasLoadedRouteBefore 
-          ? `✅ Ruta Restaurada\nSe cargó la ruta optimizada guardada con ${savedOptimizedRoute.length} pedidos`
-          : `🚀 Ruta Cargada\nSe ha cargado la ruta optimizada con ${savedOptimizedRoute.length} pedidos`;
-        
         // Solo mostrar alerta si NO es la primera vez
         if (hasLoadedRouteBefore) {
           setTimeout(() => {
             Alert.alert(
-              hasLoadedRouteBefore ? '✅ Ruta Restaurada' : '🚀 Ruta Cargada',
-              message,
+              '✅ Ruta Restaurada',
+              `Se cargó la ruta optimizada guardada con ${savedOptimizedRoute.length} pedidos`,
               [{ text: 'OK' }]
             );
           }, 500);
@@ -124,41 +121,57 @@ const PedidosScreen = ({ navigation, route }) => {
       coordinate: order.coordinate ? {
         latitude: Number(order.coordinate.latitude),
         longitude: Number(order.coordinate.longitude)
-      } : null
+      } : null,
+      // Asegurar que informacionContacto existe
+      informacionContacto: order.informacionContacto || {
+        direccion: order.direccion || '',
+        telefono: order.telefono || ''
+      }
     };
   }, []);
 
-  // DATOS PROCESADOS
+  // DATOS PROCESADOS - USANDO DIRECCIONES REALES
   const filteredOrders = useMemo(() => 
     orders.filter(order => 
       districtFilter === 'TODOS' ? true : order.distrito === districtFilter
     ), [orders, districtFilter]
   );
 
-  const ordersWithStableCoords = useMemo(() => {
+  // ORDENES PROCESADAS CON DIRECCIONES REALES
+  const ordersWithRealAddresses = useMemo(() => {
     if (filteredOrders.length === 0) return [];
     
     return filteredOrders.map(order => {
-      const direccion = order.informacionContacto?.direccion || order.direccion || '';
+      // Obtener dirección REAL del pedido
+      const realAddress = order.informacionContacto?.direccion || 
+                         order.direccion || 
+                         order.address || 
+                         '';
+      
       const telefono = order.informacionContacto?.telefono || order.telefono || '';
       const cliente = order.cliente || '';
+      const distrito = order.distrito || '';
+      
+      // Si ya tiene coordenadas, usarlas
+      let coordinate = null;
+      if (order.coordinate?.latitude && order.coordinate?.longitude) {
+        coordinate = {
+          latitude: Number(order.coordinate.latitude),
+          longitude: Number(order.coordinate.longitude),
+          _source: 'existing'
+        };
+      }
       
       const serializableOrder = {
         ...order,
         informacionContacto: {
-          direccion: direccion,
+          direccion: realAddress,
           telefono: telefono,
           ...order.informacionContacto
         },
-        coordinate: order.coordinate?.latitude && order.coordinate?.longitude 
-          ? {
-              latitude: Number(order.coordinate.latitude),
-              longitude: Number(order.coordinate.longitude)
-            }
-          : generateStableCoordinate(
-              (direccion || cliente || '') + order.id,
-              order.distrito || ''
-            ),
+        coordinate: coordinate,
+        realAddress: realAddress, // GUARDAR DIRECCIÓN REAL
+        district: distrito,
         date: typeof order.date === 'string' ? order.date : 
               order.date instanceof Date ? order.date.toISOString() : 
               new Date().toISOString()
@@ -235,11 +248,9 @@ const PedidosScreen = ({ navigation, route }) => {
     return () => { isMounted = false; };
   }, []);
 
-  // Hook de optimización
-  const { optimizeRoute } = useRouteOptimizer();
-
   // Handler para cambiar a mapa después de optimizar
   const handleMapTabPress = useCallback((coordsArray) => {
+    console.log('Cambiando a mapa con coordenadas:', coordsArray?.length);
     setActiveTab('Mapa');
     if (mapRef.current && coordsArray && coordsArray.length > 0) {
       setTimeout(() => {
@@ -251,85 +262,117 @@ const PedidosScreen = ({ navigation, route }) => {
     }
   }, []);
 
-  // Función de optimización CORREGIDA - VERSIÓN QUE SÍ GUARDA
+  // NUEVA: Función de optimización que usa direcciones reales
   const handleOptimizeRoute = useCallback(async () => {
-    if (!location || ordersWithStableCoords.length === 0) {
-      Alert.alert('Error', 'No hay pedidos con coordenadas estables para optimizar');
+    console.log('🔄 Iniciando optimización con direcciones reales...');
+    
+    if (!location) {
+      Alert.alert('Error', 'No se pudo obtener tu ubicación');
       return;
     }
+
+    // Filtrar pedidos que tienen dirección real
+    const ordersWithRealAddress = ordersWithRealAddresses.filter(order => {
+      const hasAddress = order.informacionContacto?.direccion || 
+                        order.direccion || 
+                        order.address;
+      return hasAddress && hasAddress.trim() !== '';
+    });
+
+    console.log(`📊 Estadísticas:`, {
+      totalPedidos: ordersWithRealAddresses.length,
+      conDireccion: ordersWithRealAddress.length,
+      sinDireccion: ordersWithRealAddresses.length - ordersWithRealAddress.length
+    });
+
+    if (ordersWithRealAddress.length === 0) {
+      Alert.alert(
+        '❌ Sin direcciones',
+        'Los pedidos no tienen direcciones válidas. Verifica que los pedidos tengan dirección en "informacionContacto.direccion"'
+      );
+      return;
+    }
+
+    // Mostrar primeros pedidos para debug
+    ordersWithRealAddress.slice(0, 3).forEach((order, i) => {
+      console.log(`📍 Pedido ${i + 1}:`, {
+        código: order.numeroPedido || order.id,
+        dirección: order.informacionContacto?.direccion || order.direccion,
+        distrito: order.distrito
+      });
+    });
 
     setIsCalculatingRoute(true);
     
     try {
-      // Función callback que se ejecutará cuando la optimización termine
+      console.log('🧮 Calculando ruta con direcciones reales...');
+      
+      // Función callback cuando termine la optimización
       const onOptimizationComplete = async (optimizedRouteResult, routeCoords) => {
-        console.log('Optimización completada, resultados:', {
-          pedidos: optimizedRouteResult.length,
-          coordenadas: routeCoords.length
+        console.log('🎉 Optimización completada!', {
+          pedidos: optimizedRouteResult?.length,
+          coordenadas: routeCoords?.length
         });
+        
+        if (!optimizedRouteResult || !routeCoords) {
+          console.error('No se recibieron resultados de la optimización');
+          return;
+        }
         
         // 1. Actualizar estados locales
         setOptimizedRoute(optimizedRouteResult);
         setRouteCoordinates(routeCoords);
         
-        // 2. Guardar la ruta optimizada en AsyncStorage
+        // 2. Guardar la ruta optimizada
         if (optimizedRouteResult.length > 0) {
-          console.log('Guardando ruta en AsyncStorage...');
+          console.log('💾 Guardando ruta en AsyncStorage...');
           const saveSuccess = await saveOptimizedRoute(optimizedRouteResult, routeCoords);
           
           if (saveSuccess) {
-            // Determinar mensaje según si es primera optimización o no
-            const isFirstOptimization = !hasLoadedRouteBefore;
-            const alertTitle = isFirstOptimization ? '🚀 Ruta Optimizada' : '✅ Ruta Optimizada y Guardada';
-            const alertMessage = isFirstOptimization 
-              ? `Se optimizaron ${optimizedRouteResult.length} pedidos. La ruta se guardará para futuras sesiones.`
-              : `Se optimizaron ${optimizedRouteResult.length} pedidos y se guardó la ruta para futuras sesiones.`;
-            
-            Alert.alert(alertTitle, alertMessage);
-            
-            // Marcar que ya ha optimizado una ruta
-            if (isFirstOptimization) {
-              await AsyncStorage.setItem('hasLoadedRouteBefore', 'true');
-              setHasLoadedRouteBefore(true);
-            }
+            Alert.alert(
+              '✅ Ruta Optimizada',
+              `Se optimizaron ${optimizedRouteResult.length} pedidos usando direcciones reales`
+            );
           }
         }
         
-        // 3. Cambiar a pestaña de mapa si hay coordenadas
+        // 3. Cambiar a pestaña de mapa
         if (routeCoords.length > 0) {
           handleMapTabPress(routeCoords);
         }
       };
 
       // Llamar a la función de optimización con el callback
-      await optimizeRoute(
+      const result = await optimizeRoute(
         location,
-        ordersWithStableCoords,
+        ordersWithRealAddress, // Pasar pedidos CON DIRECCIONES REALES
         onOptimizationComplete,
-        setIsCalculatingRoute
+        setIsCalculatingRoute,
+        handleMapTabPress
       );
 
+      if (!result.success) {
+        Alert.alert('❌ Error', result.error || 'No se pudo calcular la ruta');
+      }
+      
     } catch (error) {
-      console.error('Error en handleOptimizeRoute:', error);
-      Alert.alert('Error', 'No se pudo calcular o guardar la ruta');
+      console.error('💥 Error en handleOptimizeRoute:', error);
+      Alert.alert('Error', 'No se pudo calcular la ruta');
+    } finally {
+      setIsCalculatingRoute(false);
     }
-  }, [location, ordersWithStableCoords, optimizeRoute, saveOptimizedRoute, handleMapTabPress, hasLoadedRouteBefore]);
+  }, [location, ordersWithRealAddresses, optimizeRoute, saveOptimizedRoute, handleMapTabPress]);
 
-  // Función para cargar ruta guardada manualmente - MODIFICADA
+  // Función para cargar ruta guardada manualmente
   const handleLoadSavedRoute = useCallback(async () => {
     if (savedOptimizedRoute.length > 0) {
       setOptimizedRoute(savedOptimizedRoute);
       setRouteCoordinates(savedRouteCoordinates);
       setHasRestoredRoute(true);
       
-      // Determinar mensaje según si es primera vez o no
-      const message = hasLoadedRouteBefore 
-        ? `✅ Ruta Restaurada\nSe cargó la ruta guardada con ${savedOptimizedRoute.length} pedidos`
-        : `🚀 Ruta Cargada\nSe ha cargado la ruta optimizada con ${savedOptimizedRoute.length} pedidos`;
-      
       Alert.alert(
-        hasLoadedRouteBefore ? '✅ Ruta Restaurada' : '🚀 Ruta Cargada',
-        message,
+        '✅ Ruta Restaurada',
+        `Se cargó la ruta guardada con ${savedOptimizedRoute.length} pedidos`,
         [{ text: 'OK' }]
       );
       
@@ -357,11 +400,9 @@ const PedidosScreen = ({ navigation, route }) => {
     setSelectedOrder(null);
   }, []);
 
-  // Función para marcar pedido como entregado desde el modal
   const handleMarkDelivered = useCallback((orderId) => {
     if (orderId) {
       markAsDelivered(orderId);
-      // Actualizar también en la ruta optimizada si está presente
       updateOrderInRoute(orderId, { estado: 'entregado' });
     }
   }, [markAsDelivered, updateOrderInRoute]);
@@ -418,7 +459,6 @@ const PedidosScreen = ({ navigation, route }) => {
     }
   }, [location, mapRegion]);
 
-  // Función para manejar la eliminación de pedidos
   const handleDeleteOrder = useCallback(async (orderId) => {
     Alert.alert(
       "Eliminar Pedido",
@@ -432,19 +472,15 @@ const PedidosScreen = ({ navigation, route }) => {
           text: "Eliminar",
           style: "destructive",
           onPress: async () => {
-            // Eliminar del contexto
             await deleteOrder(orderId);
             
-            // Si el pedido eliminado estaba en la ruta optimizada, actualizar la ruta
             if (optimizedRoute.some(order => order.id === orderId)) {
               const updatedRoute = optimizedRoute.filter(order => order.id !== orderId);
               setOptimizedRoute(updatedRoute);
               
-              // También actualizar la ruta guardada
               if (updatedRoute.length > 0) {
                 await saveOptimizedRoute(updatedRoute, routeCoordinates);
               } else {
-                // Si no quedan pedidos, limpiar todo
                 setRouteCoordinates([]);
                 await clearOptimizedRoute();
               }
@@ -506,9 +542,7 @@ const PedidosScreen = ({ navigation, route }) => {
             onPress={handleLoadSavedRoute}
           >
             <Ionicons name="download-outline" size={18} color="#FFF" />
-            <Text style={styles.loadRouteText}>
-              {hasLoadedRouteBefore ? ' Cargar Ruta Guardada' : ' Cargar Ruta'}
-            </Text>
+            <Text style={styles.loadRouteText}> Cargar Ruta Guardada</Text>
           </TouchableOpacity>
         )}
       </View>
@@ -517,7 +551,7 @@ const PedidosScreen = ({ navigation, route }) => {
         {activeTab === 'Pedidos' ? (
           <OrderList
             optimizedRoute={optimizedRoute}
-            ordersWithStableCoords={ordersWithStableCoords}
+            ordersWithStableCoords={ordersWithRealAddresses} // CAMBIADO
             isCalculatingRoute={isCalculatingRoute}
             onOptimizeRoute={handleOptimizeRoute}
             onForceRecalculate={handleForceRecalculate}
@@ -532,7 +566,7 @@ const PedidosScreen = ({ navigation, route }) => {
             location={location}
             mapRegion={mapRegion}
             optimizedRoute={optimizedRoute}
-            ordersWithStableCoords={ordersWithStableCoords}
+            ordersWithStableCoords={ordersWithRealAddresses} // CAMBIADO
             routeCoordinates={routeCoordinates}
             onOrderPress={handleOrderPress}
             onCenterMap={handleCenterMap}
