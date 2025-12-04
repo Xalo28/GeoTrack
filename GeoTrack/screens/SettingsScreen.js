@@ -5,15 +5,12 @@ import {
   TouchableOpacity, 
   SafeAreaView,
   Dimensions,
-  Platform,
   Modal,
   Animated
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { MaterialIcons } from '@expo/vector-icons';
-
-// Importar estilos
-import { styles } from '../styles/SettingsScreenStyles';
+import { Platform } from 'react-native';
 
 const { width } = Dimensions.get('window');
 
@@ -232,13 +229,11 @@ const SettingsScreen = ({ navigation }) => {
 
   return (
     <SafeAreaView style={styles.container}>
-      {/* Fondo gradiente */}
       <LinearGradient
         colors={['#1a1a2e', '#16213e']}
         style={styles.backgroundGradient}
       />
 
-      {/* Header personalizado */}
       <View style={styles.customHeader}>
         <TouchableOpacity 
           style={styles.backButton}
@@ -262,7 +257,6 @@ const SettingsScreen = ({ navigation }) => {
         </TouchableOpacity>
       </View>
 
-      {/* Fecha */}
       <View style={styles.dateContainer}>
         <MaterialIcons name="calendar-today" size={16} color="#5CE1E6" />
         <Text style={styles.dateText}>{formattedDate}</Text>
@@ -276,7 +270,6 @@ const SettingsScreen = ({ navigation }) => {
           </View>
           
           <View style={styles.optionsList}>
-            {/* Idioma */}
             <TouchableOpacity 
               style={[styles.optionItem, styles.optionItemFirst]}
               onPress={() => animateModalIn('language')}
@@ -294,7 +287,6 @@ const SettingsScreen = ({ navigation }) => {
               </View>
             </TouchableOpacity>
 
-            {/* Tema */}
             <TouchableOpacity 
               style={styles.optionItem}
               onPress={() => animateModalIn('theme')}
@@ -321,7 +313,6 @@ const SettingsScreen = ({ navigation }) => {
           </View>
           
           <View style={styles.optionsList}>
-            {/* Modo Offline */}
             <TouchableOpacity 
               style={[styles.optionItem, styles.optionItemFirst]}
               onPress={() => animateModalIn('offline')}
@@ -341,7 +332,6 @@ const SettingsScreen = ({ navigation }) => {
           </View>
         </View>
 
-        {/* Información */}
         <View style={styles.infoContainer}>
           <View style={styles.infoHeader}>
             <MaterialIcons name="info" size={18} color="#5CE1E6" />
@@ -354,7 +344,6 @@ const SettingsScreen = ({ navigation }) => {
         </View>
       </View>
 
-      {/* Modal de tema */}
       <Modal
         visible={themeModal}
         transparent={true}
@@ -366,7 +355,6 @@ const SettingsScreen = ({ navigation }) => {
         </Animated.View>
       </Modal>
 
-      {/* Modal de idioma */}
       <Modal
         visible={languageModal}
         transparent={true}
@@ -378,7 +366,6 @@ const SettingsScreen = ({ navigation }) => {
         </Animated.View>
       </Modal>
 
-      {/* Modal de modo offline */}
       <Modal
         visible={offlineModal}
         transparent={true}
@@ -391,6 +378,297 @@ const SettingsScreen = ({ navigation }) => {
       </Modal>
     </SafeAreaView>
   );
+};
+
+const styles = {
+  container: {
+    flex: 1,
+    backgroundColor: '#1a1a2e',
+  },
+  backgroundGradient: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    top: 0,
+    height: Platform.OS === 'ios' ? 200 : 180,
+  },
+  customHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 20,
+    paddingTop: Platform.OS === 'ios' ? 10 : 40,
+    paddingBottom: 10,
+    backgroundColor: 'transparent',
+  },
+  backButton: {
+    width: 40,
+    height: 40,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  headerCenter: {
+    alignItems: 'center',
+  },
+  headerTitle: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    color: '#FFFFFF',
+    letterSpacing: 1,
+  },
+  headerSubtitle: {
+    fontSize: 14,
+    color: '#5CE1E6',
+    marginTop: 2,
+    fontWeight: '500',
+  },
+  profileButton: {
+    width: 40,
+    height: 40,
+  },
+  profileCircle: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  profileInitial: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#FFFFFF',
+  },
+  dateContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 8,
+    marginHorizontal: 20,
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    borderRadius: 10,
+    marginTop: 5,
+  },
+  dateText: {
+    fontSize: 12,
+    color: '#FFFFFF',
+    marginLeft: 8,
+    fontWeight: '500',
+  },
+  content: {
+    flex: 1,
+    paddingHorizontal: 20,
+    paddingTop: 20,
+  },
+  section: {
+    marginBottom: 25,
+  },
+  sectionHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 15,
+    paddingBottom: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(92, 225, 230, 0.3)',
+  },
+  sectionTitle: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#FFFFFF',
+    marginLeft: 10,
+  },
+  optionsList: {
+    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+    borderRadius: 12,
+    overflow: 'hidden',
+  },
+  optionItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    padding: 15,
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(255, 255, 255, 0.1)',
+  },
+  optionItemFirst: {
+    borderTopLeftRadius: 12,
+    borderTopRightRadius: 12,
+  },
+  optionItemLast: {
+    borderBottomWidth: 0,
+    borderBottomLeftRadius: 12,
+    borderBottomRightRadius: 12,
+  },
+  optionContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
+  },
+  optionText: {
+    fontSize: 14,
+    fontWeight: 'bold',
+    color: '#FFFFFF',
+    marginLeft: 12,
+  },
+  optionRight: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  optionValue: {
+    fontSize: 12,
+    color: '#a0a0c0',
+    marginRight: 8,
+  },
+  optionValueActive: {
+    color: '#5CE1E6',
+    fontWeight: 'bold',
+  },
+  infoContainer: {
+    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+    padding: 15,
+    borderRadius: 12,
+    borderLeftWidth: 3,
+    borderLeftColor: '#5CE1E6',
+  },
+  infoHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 10,
+  },
+  infoTitle: {
+    fontSize: 14,
+    fontWeight: 'bold',
+    color: '#FFFFFF',
+    marginLeft: 8,
+  },
+  infoText: {
+    fontSize: 12,
+    color: '#5CE1E6',
+    lineHeight: 18,
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.8)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+  },
+  modalContent: {
+    backgroundColor: '#1a1a2e',
+    borderRadius: 20,
+    width: width * 0.9,
+    maxWidth: 400,
+    borderWidth: 1,
+    borderColor: 'rgba(92, 225, 230, 0.3)',
+    shadowColor: '#5CE1E6',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.3,
+    shadowRadius: 15,
+    elevation: 10,
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: 20,
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(255, 255, 255, 0.1)',
+  },
+  modalTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: '#FFFFFF',
+  },
+  modalOptions: {
+    padding: 20,
+    gap: 10,
+  },
+  modalOption: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    padding: 15,
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.2)',
+  },
+  modalOptionSelected: {
+    backgroundColor: 'rgba(92, 225, 230, 0.2)',
+    borderColor: 'rgba(92, 225, 230, 0.4)',
+  },
+  modalOptionContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
+  },
+  modalOptionLabel: {
+    fontSize: 16,
+    color: '#a0a0c0',
+    marginLeft: 12,
+    flex: 1,
+  },
+  modalOptionLabelSelected: {
+    color: '#FFFFFF',
+    fontWeight: 'bold',
+  },
+  offlineModalContent: {
+    padding: 20,
+    alignItems: 'center',
+  },
+  offlineIcon: {
+    marginBottom: 20,
+  },
+  offlineTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: '#FFFFFF',
+    marginBottom: 10,
+    textAlign: 'center',
+  },
+  offlineDescription: {
+    fontSize: 14,
+    color: '#a0a0c0',
+    textAlign: 'center',
+    marginBottom: 25,
+    lineHeight: 20,
+  },
+  modalButtons: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    width: '100%',
+    gap: 10,
+  },
+  modalButton: {
+    flex: 1,
+    borderRadius: 12,
+    overflow: 'hidden',
+  },
+  modalButtonSecondary: {
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    borderWidth: 1,
+    borderColor: 'rgba(92, 225, 230, 0.4)',
+  },
+  modalButtonPrimary: {
+    backgroundColor: 'transparent',
+  },
+  modalButtonGradient: {
+    paddingVertical: 14,
+    paddingHorizontal: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  modalButtonSecondaryText: {
+    color: '#5CE1E6',
+    fontWeight: 'bold',
+    fontSize: 14,
+    textAlign: 'center',
+    paddingVertical: 14,
+  },
+  modalButtonPrimaryText: {
+    color: '#FFFFFF',
+    fontWeight: 'bold',
+    fontSize: 14,
+  },
 };
 
 export default SettingsScreen;

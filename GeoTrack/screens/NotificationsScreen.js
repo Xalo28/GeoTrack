@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   View, 
   Text, 
@@ -13,7 +13,6 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { MaterialIcons } from '@expo/vector-icons';
 import * as Notifications from 'expo-notifications';
 import * as Device from 'expo-device';
-import NotificationsScreenStyles from '../styles/NotificationsScreenStyles'; // Importa los estilos
 
 const { width } = Dimensions.get('window');
 
@@ -131,36 +130,36 @@ const NotificationsScreen = ({ navigation }) => {
   };
 
   const ToggleItem = ({ icon, title, subtitle, value, onValueChange }) => (
-    <View style={NotificationsScreenStyles.toggleItem}>
-      <View style={NotificationsScreenStyles.toggleInfo}>
-        <View style={[NotificationsScreenStyles.toggleIcon, { backgroundColor: `${getNotificationColor('delivery')}20` }]}>
+    <View style={styles.toggleItem}>
+      <View style={styles.toggleInfo}>
+        <View style={[styles.toggleIcon, { backgroundColor: `${getNotificationColor('delivery')}20` }]}>
           <MaterialIcons name={icon} size={20} color={getNotificationColor('delivery')} />
         </View>
-        <View style={NotificationsScreenStyles.toggleTextContainer}>
-          <Text style={NotificationsScreenStyles.toggleTitle}>{title}</Text>
-          {subtitle && <Text style={NotificationsScreenStyles.toggleSubtitle}>{subtitle}</Text>}
+        <View style={styles.toggleTextContainer}>
+          <Text style={styles.toggleTitle}>{title}</Text>
+          {subtitle && <Text style={styles.toggleSubtitle}>{subtitle}</Text>}
         </View>
       </View>
       <TouchableOpacity 
-        style={[NotificationsScreenStyles.toggleSwitch, value && NotificationsScreenStyles.toggleActive]}
+        style={[styles.toggleSwitch, value && styles.toggleActive]}
         onPress={() => onValueChange(!value)}
         activeOpacity={0.8}
       >
-        <View style={[NotificationsScreenStyles.toggleThumb, value && NotificationsScreenStyles.toggleThumbActive]} />
+        <View style={[styles.toggleThumb, value && styles.toggleThumbActive]} />
       </TouchableOpacity>
     </View>
   );
 
   const ScheduleOption = ({ title, value, isSelected, onSelect }) => (
     <TouchableOpacity 
-      style={[NotificationsScreenStyles.scheduleOption, isSelected && NotificationsScreenStyles.scheduleOptionSelected]}
+      style={[styles.scheduleOption, isSelected && styles.scheduleOptionSelected]}
       onPress={() => onSelect(value)}
       activeOpacity={0.7}
     >
-      <View style={NotificationsScreenStyles.scheduleRadio}>
-        <View style={[NotificationsScreenStyles.scheduleRadioInner, isSelected && NotificationsScreenStyles.scheduleRadioSelected]} />
+      <View style={styles.scheduleRadio}>
+        <View style={[styles.scheduleRadioInner, isSelected && styles.scheduleRadioSelected]} />
       </View>
-      <Text style={[NotificationsScreenStyles.scheduleText, isSelected && NotificationsScreenStyles.scheduleTextSelected]}>
+      <Text style={[styles.scheduleText, isSelected && styles.scheduleTextSelected]}>
         {title}
       </Text>
     </TouchableOpacity>
@@ -169,15 +168,15 @@ const NotificationsScreen = ({ navigation }) => {
   const NotificationItem = ({ notification }) => (
     <TouchableOpacity 
       style={[
-        NotificationsScreenStyles.notificationItem,
-        !notification.read && NotificationsScreenStyles.notificationUnread
+        styles.notificationItem,
+        !notification.read && styles.notificationUnread
       ]}
       onPress={() => toggleNotification(notification.id)}
       activeOpacity={0.7}
     >
-      <View style={NotificationsScreenStyles.notificationContent}>
+      <View style={styles.notificationContent}>
         <View style={[
-          NotificationsScreenStyles.notificationIcon,
+          styles.notificationIcon,
           { backgroundColor: `${getNotificationColor(notification.type)}20` }
         ]}>
           <MaterialIcons 
@@ -186,108 +185,102 @@ const NotificationsScreen = ({ navigation }) => {
             color={getNotificationColor(notification.type)} 
           />
         </View>
-        <View style={NotificationsScreenStyles.notificationText}>
-          <View style={NotificationsScreenStyles.notificationHeader}>
-            <Text style={NotificationsScreenStyles.notificationTitle}>{notification.title}</Text>
-            {!notification.read && <View style={NotificationsScreenStyles.unreadDot} />}
+        <View style={styles.notificationText}>
+          <View style={styles.notificationHeader}>
+            <Text style={styles.notificationTitle}>{notification.title}</Text>
+            {!notification.read && <View style={styles.unreadDot} />}
           </View>
-          <Text style={NotificationsScreenStyles.notificationMessage} numberOfLines={2}>
+          <Text style={styles.notificationMessage} numberOfLines={2}>
             {notification.message}
           </Text>
-          <Text style={NotificationsScreenStyles.notificationTime}>{notification.time}</Text>
+          <Text style={styles.notificationTime}>{notification.time}</Text>
         </View>
       </View>
     </TouchableOpacity>
   );
 
   return (
-    <SafeAreaView style={NotificationsScreenStyles.container}>
-      {/* Fondo gradiente */}
+    <SafeAreaView style={styles.container}>
       <LinearGradient
         colors={['#1a1a2e', '#16213e']}
-        style={NotificationsScreenStyles.backgroundGradient}
+        style={styles.backgroundGradient}
       />
 
-      {/* Header personalizado */}
-      <View style={NotificationsScreenStyles.customHeader}>
+      <View style={styles.customHeader}>
         <TouchableOpacity 
-          style={NotificationsScreenStyles.backButton}
+          style={styles.backButton}
           onPress={() => navigation.goBack()}
         >
           <MaterialIcons name="arrow-back" size={28} color="#FFFFFF" />
         </TouchableOpacity>
         
-        <View style={NotificationsScreenStyles.headerCenter}>
-          <Text style={NotificationsScreenStyles.headerTitle}>NOTIFICACIONES</Text>
-          <Text style={NotificationsScreenStyles.headerSubtitle}>JUANITO LOPEZ</Text>
+        <View style={styles.headerCenter}>
+          <Text style={styles.headerTitle}>NOTIFICACIONES</Text>
+          <Text style={styles.headerSubtitle}>JUANITO LOPEZ</Text>
         </View>
         
-        <TouchableOpacity style={NotificationsScreenStyles.profileButton}>
+        <TouchableOpacity style={styles.profileButton}>
           <LinearGradient
             colors={['#5CE1E6', '#00adb5']}
-            style={NotificationsScreenStyles.profileCircle}
+            style={styles.profileCircle}
           >
-            <Text style={NotificationsScreenStyles.profileInitial}>JL</Text>
+            <Text style={styles.profileInitial}>JL</Text>
           </LinearGradient>
         </TouchableOpacity>
       </View>
 
-      {/* Fecha */}
-      <View style={NotificationsScreenStyles.dateContainer}>
+      <View style={styles.dateContainer}>
         <MaterialIcons name="calendar-today" size={16} color="#5CE1E6" />
-        <Text style={NotificationsScreenStyles.dateText}>{formattedDate}</Text>
+        <Text style={styles.dateText}>{formattedDate}</Text>
       </View>
 
       <ScrollView 
-        style={NotificationsScreenStyles.scrollView}
-        contentContainerStyle={NotificationsScreenStyles.scrollContent}
+        style={styles.scrollView}
+        contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
-        {/* Contador de notificaciones */}
-        <View style={NotificationsScreenStyles.notificationsHeader}>
-          <View style={NotificationsScreenStyles.notificationsTitleContainer}>
+        <View style={styles.notificationsHeader}>
+          <View style={styles.notificationsTitleContainer}>
             <MaterialIcons name="notifications" size={24} color="#5CE1E6" />
-            <Text style={NotificationsScreenStyles.notificationsTitle}>Notificaciones Recientes</Text>
+            <Text style={styles.notificationsTitle}>Notificaciones Recientes</Text>
           </View>
-          <View style={NotificationsScreenStyles.notificationsActions}>
+          <View style={styles.notificationsActions}>
             {unreadCount > 0 && (
-              <TouchableOpacity style={NotificationsScreenStyles.markAllButton} onPress={markAllAsRead}>
-                <Text style={NotificationsScreenStyles.markAllText}>Marcar como leídas</Text>
+              <TouchableOpacity style={styles.markAllButton} onPress={markAllAsRead}>
+                <Text style={styles.markAllText}>Marcar como leídas</Text>
               </TouchableOpacity>
             )}
             {notifications.length > 0 && (
-              <TouchableOpacity style={NotificationsScreenStyles.clearButton} onPress={clearAllNotifications}>
+              <TouchableOpacity style={styles.clearButton} onPress={clearAllNotifications}>
                 <MaterialIcons name="delete-outline" size={20} color="#FF4444" />
               </TouchableOpacity>
             )}
           </View>
         </View>
 
-        {/* Lista de notificaciones */}
-        <View style={NotificationsScreenStyles.notificationsList}>
+        <View style={styles.notificationsList}>
           {notifications.length > 0 ? (
             notifications.map(notification => (
               <NotificationItem key={notification.id} notification={notification} />
             ))
           ) : (
-            <View style={NotificationsScreenStyles.emptyState}>
+            <View style={styles.emptyState}>
               <MaterialIcons name="notifications-off" size={60} color="rgba(255, 255, 255, 0.2)" />
-              <Text style={NotificationsScreenStyles.emptyTitle}>No hay notificaciones</Text>
-              <Text style={NotificationsScreenStyles.emptySubtitle}>
+              <Text style={styles.emptyTitle}>No hay notificaciones</Text>
+              <Text style={styles.emptySubtitle}>
                 Cuando tengas nuevas alertas, aparecerán aquí
               </Text>
             </View>
           )}
         </View>
 
-        {/* Sección de Preferencias */}
-        <View style={NotificationsScreenStyles.preferencesSection}>
-          <View style={NotificationsScreenStyles.sectionHeader}>
+        <View style={styles.preferencesSection}>
+          <View style={styles.sectionHeader}>
             <MaterialIcons name="settings" size={20} color="#5CE1E6" />
-            <Text style={NotificationsScreenStyles.sectionTitle}>PREFERENCIAS DE ALERTAS</Text>
+            <Text style={styles.sectionTitle}>PREFERENCIAS DE ALERTAS</Text>
           </View>
           
-          <View style={NotificationsScreenStyles.preferencesContainer}>
+          <View style={styles.preferencesContainer}>
             <ToggleItem 
               icon="notifications" 
               title="Notificaciones Push" 
@@ -325,10 +318,9 @@ const NotificationsScreen = ({ navigation }) => {
             />
           </View>
 
-          {/* Configuración de frecuencia */}
-          <View style={NotificationsScreenStyles.scheduleSection}>
-            <Text style={NotificationsScreenStyles.scheduleTitle}>Frecuencia de Alertas</Text>
-            <View style={NotificationsScreenStyles.scheduleOptions}>
+          <View style={styles.scheduleSection}>
+            <Text style={styles.scheduleTitle}>Frecuencia de Alertas</Text>
+            <View style={styles.scheduleOptions}>
               <ScheduleOption 
                 title="Inmediatamente"
                 value="instantly"
@@ -357,26 +349,376 @@ const NotificationsScreen = ({ navigation }) => {
           </View>
         </View>
 
-        {/* Información de ayuda */}
-        <View style={NotificationsScreenStyles.infoContainer}>
-          <View style={NotificationsScreenStyles.infoHeader}>
+        <View style={styles.infoContainer}>
+          <View style={styles.infoHeader}>
             <MaterialIcons name="info" size={18} color="#5CE1E6" />
-            <Text style={NotificationsScreenStyles.infoTitle}>Información importante</Text>
+            <Text style={styles.infoTitle}>Información importante</Text>
           </View>
-          <Text style={NotificationsScreenStyles.infoText}>
+          <Text style={styles.infoText}>
             Recibirás notificaciones sobre nuevos pedidos asignados, cambios en tus rutas activas, 
             recordatorios de entrega y actualizaciones importantes del sistema.
           </Text>
-          <Text style={NotificationsScreenStyles.infoNote}>
+          <Text style={styles.infoNote}>
             Las notificaciones SMS solo se enviarán para alertas consideradas urgentes por el sistema.
           </Text>
         </View>
 
-        {/* Espacio final */}
         <View style={{ height: 30 }} />
       </ScrollView>
     </SafeAreaView>
   );
+};
+
+const styles = {
+  container: {
+    flex: 1,
+    backgroundColor: '#1a1a2e',
+  },
+  backgroundGradient: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    top: 0,
+    height: Platform.OS === 'ios' ? 200 : 180,
+  },
+  customHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 20,
+    paddingTop: Platform.OS === 'ios' ? 10 : 40,
+    paddingBottom: 10,
+    backgroundColor: 'transparent',
+  },
+  backButton: {
+    width: 40,
+    height: 40,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  headerCenter: {
+    alignItems: 'center',
+  },
+  headerTitle: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    color: '#FFFFFF',
+    letterSpacing: 1,
+  },
+  headerSubtitle: {
+    fontSize: 14,
+    color: '#5CE1E6',
+    marginTop: 2,
+    fontWeight: '500',
+  },
+  profileButton: {
+    width: 40,
+    height: 40,
+  },
+  profileCircle: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  profileInitial: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#FFFFFF',
+  },
+  dateContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 8,
+    marginHorizontal: 20,
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    borderRadius: 10,
+    marginTop: 5,
+  },
+  dateText: {
+    fontSize: 12,
+    color: '#FFFFFF',
+    marginLeft: 8,
+    fontWeight: '500',
+  },
+  scrollView: {
+    flex: 1,
+  },
+  scrollContent: {
+    paddingHorizontal: 20,
+    paddingTop: 10,
+    paddingBottom: 20,
+  },
+  notificationsHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 20,
+  },
+  notificationsTitleContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  notificationsTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#FFFFFF',
+    marginLeft: 10,
+  },
+  notificationsActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 15,
+  },
+  markAllButton: {
+    backgroundColor: 'rgba(92, 225, 230, 0.2)',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 8,
+  },
+  markAllText: {
+    fontSize: 12,
+    fontWeight: 'bold',
+    color: '#5CE1E6',
+  },
+  clearButton: {
+    padding: 6,
+  },
+  notificationsList: {
+    marginBottom: 25,
+  },
+  notificationItem: {
+    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+    borderRadius: 12,
+    padding: 15,
+    marginBottom: 10,
+  },
+  notificationUnread: {
+    backgroundColor: 'rgba(92, 225, 230, 0.1)',
+    borderWidth: 1,
+    borderColor: 'rgba(92, 225, 230, 0.2)',
+  },
+  notificationContent: {
+    flexDirection: 'row',
+  },
+  notificationIcon: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 12,
+  },
+  notificationText: {
+    flex: 1,
+  },
+  notificationHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 5,
+  },
+  notificationTitle: {
+    fontSize: 14,
+    fontWeight: 'bold',
+    color: '#FFFFFF',
+    flex: 1,
+  },
+  unreadDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: '#5CE1E6',
+    marginLeft: 5,
+  },
+  notificationMessage: {
+    fontSize: 12,
+    color: '#a0a0c0',
+    marginBottom: 5,
+    lineHeight: 16,
+  },
+  notificationTime: {
+    fontSize: 10,
+    color: '#5CE1E6',
+    fontWeight: '500',
+  },
+  emptyState: {
+    alignItems: 'center',
+    paddingVertical: 40,
+  },
+  emptyTitle: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#FFFFFF',
+    marginTop: 20,
+    marginBottom: 10,
+  },
+  emptySubtitle: {
+    fontSize: 14,
+    color: '#a0a0c0',
+    textAlign: 'center',
+    paddingHorizontal: 30,
+  },
+  preferencesSection: {
+    marginBottom: 25,
+  },
+  sectionHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 15,
+  },
+  sectionTitle: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#FFFFFF',
+    marginLeft: 10,
+  },
+  preferencesContainer: {
+    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+    borderRadius: 12,
+    padding: 15,
+    marginBottom: 20,
+  },
+  toggleItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(255, 255, 255, 0.1)',
+  },
+  toggleItemLast: {
+    borderBottomWidth: 0,
+  },
+  toggleInfo: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
+  },
+  toggleIcon: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 12,
+  },
+  toggleTextContainer: {
+    flex: 1,
+  },
+  toggleTitle: {
+    fontSize: 14,
+    fontWeight: 'bold',
+    color: '#FFFFFF',
+    marginBottom: 3,
+  },
+  toggleSubtitle: {
+    fontSize: 12,
+    color: '#a0a0c0',
+  },
+  toggleSwitch: {
+    width: 50,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    padding: 2,
+  },
+  toggleActive: {
+    backgroundColor: '#5CE1E6',
+  },
+  toggleThumb: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    backgroundColor: '#FFFFFF',
+  },
+  toggleThumbActive: {
+    transform: [{ translateX: 22 }],
+  },
+  scheduleSection: {
+    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+    borderRadius: 12,
+    padding: 15,
+  },
+  scheduleTitle: {
+    fontSize: 14,
+    fontWeight: 'bold',
+    color: '#FFFFFF',
+    marginBottom: 12,
+  },
+  scheduleOptions: {
+    gap: 10,
+  },
+  scheduleOption: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 12,
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    borderRadius: 8,
+  },
+  scheduleOptionSelected: {
+    backgroundColor: 'rgba(92, 225, 230, 0.2)',
+    borderWidth: 1,
+    borderColor: 'rgba(92, 225, 230, 0.4)',
+  },
+  scheduleRadio: {
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    borderWidth: 2,
+    borderColor: '#a0a0c0',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 10,
+  },
+  scheduleRadioInner: {
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+    backgroundColor: 'transparent',
+  },
+  scheduleRadioSelected: {
+    backgroundColor: '#5CE1E6',
+  },
+  scheduleText: {
+    fontSize: 14,
+    color: '#a0a0c0',
+    flex: 1,
+  },
+  scheduleTextSelected: {
+    color: '#FFFFFF',
+    fontWeight: 'bold',
+  },
+  infoContainer: {
+    backgroundColor: 'rgba(92, 225, 230, 0.1)',
+    padding: 15,
+    borderRadius: 12,
+    borderLeftWidth: 3,
+    borderLeftColor: '#5CE1E6',
+  },
+  infoHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 10,
+  },
+  infoTitle: {
+    fontSize: 14,
+    fontWeight: 'bold',
+    color: '#FFFFFF',
+    marginLeft: 8,
+  },
+  infoText: {
+    fontSize: 12,
+    color: '#5CE1E6',
+    lineHeight: 18,
+    marginBottom: 8,
+  },
+  infoNote: {
+    fontSize: 11,
+    color: '#5CE1E6',
+    fontStyle: 'italic',
+  },
 };
 
 export default NotificationsScreen;

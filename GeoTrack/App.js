@@ -3,7 +3,7 @@ import { NavigationContainer } from '@react-navigation/native';
 import { createStackNavigator } from '@react-navigation/stack';
 import { SafeAreaProvider } from 'react-native-safe-area-context'; // <--- 1. IMPORTANTE
 import { OrdersProvider } from './context/OrdersContext';
-
+import './polyfills';
 // Pantallas Principales
 import LoginScreen from './screens/LoginScreen';
 import HomeScreen from './screens/HomeScreen';
@@ -15,7 +15,6 @@ import ScanPhase1Screen from './screens/ScanPhase1Screen';
 import ScanPhase2Screen from './screens/ScanPhase2Screen';
 import SuccessScreen from './screens/SuccessScreen';
 import ManualOrderScreen from './screens/ManualOrderScreen';
-import OrderSuccessScreen from './screens/OrderSuccessScreen';
 
 // NUEVAS PANTALLAS DEL MENÚ
 import ProfileScreen from './screens/ProfileScreen';
@@ -56,7 +55,6 @@ export default function App() {
             <Stack.Screen name="ScanPhase2" component={ScanPhase2Screen} />
             <Stack.Screen name="Success" component={SuccessScreen} />
             <Stack.Screen name="ManualOrder" component={ManualOrderScreen} />
-            <Stack.Screen name="OrderSuccess" component={OrderSuccessScreen} />
           </Stack.Navigator>
         </NavigationContainer>
       </OrdersProvider>

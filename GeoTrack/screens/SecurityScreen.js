@@ -7,7 +7,6 @@ import {
   ScrollView,
   TextInput,
   Dimensions,
-  Platform,
   Alert,
   Modal,
   Animated
@@ -15,21 +14,16 @@ import {
 import { LinearGradient } from 'expo-linear-gradient';
 import { MaterialIcons } from '@expo/vector-icons';
 import * as LocalAuthentication from 'expo-local-authentication';
-import { useNavigation } from '@react-navigation/native';
-
-// Importar estilos
-import { styles } from '../styles/SecurityScreenStyles';
+import { Platform } from 'react-native';
 
 const { width } = Dimensions.get('window');
 
-const SecurityScreen = () => {
-  const navigation = useNavigation();
+const SecurityScreen = ({ navigation }) => {
   const [biometricsEnabled, setBiometricsEnabled] = useState(false);
   const [biometryType, setBiometryType] = useState(null);
   const [changePasswordModal, setChangePasswordModal] = useState(false);
   const [sessionTimeout, setSessionTimeout] = useState('15min');
   const [twoFactorEnabled, setTwoFactorEnabled] = useState(true);
-  const [activityLogVisible, setActivityLogVisible] = useState(false);
   
   const [passwordData, setPasswordData] = useState({
     currentPassword: '',
@@ -45,7 +39,6 @@ const SecurityScreen = () => {
   const options = { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' };
   const formattedDate = currentDate.toLocaleDateString('es-ES', options).toUpperCase();
 
-  // Actividad reciente simulada
   const recentActivity = [
     {
       id: 1,
@@ -103,8 +96,7 @@ const SecurityScreen = () => {
           setBiometryType('Huella digital');
         }
         
-        // Verificar si la biometría ya estaba activada
-        setBiometricsEnabled(true); // Simulamos que ya está activada
+        setBiometricsEnabled(true);
       }
     } catch (error) {
       console.error('Error checking biometrics:', error);
@@ -206,7 +198,6 @@ const SecurityScreen = () => {
 
   const handleChangePassword = () => {
     if (validatePasswordForm()) {
-      // Simular cambio de contraseña
       setTimeout(() => {
         animateModalOut();
         Alert.alert(
@@ -295,13 +286,11 @@ const SecurityScreen = () => {
 
   return (
     <SafeAreaView style={styles.container}>
-      {/* Fondo gradiente */}
       <LinearGradient
         colors={['#1a1a2e', '#16213e']}
         style={styles.backgroundGradient}
       />
 
-      {/* Header personalizado */}
       <View style={styles.customHeader}>
         <TouchableOpacity 
           style={styles.backButton}
@@ -325,7 +314,6 @@ const SecurityScreen = () => {
         </TouchableOpacity>
       </View>
 
-      {/* Fecha */}
       <View style={styles.dateContainer}>
         <MaterialIcons name="calendar-today" size={16} color="#5CE1E6" />
         <Text style={styles.dateText}>{formattedDate}</Text>
@@ -336,7 +324,6 @@ const SecurityScreen = () => {
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
-        {/* Sección de Autenticación */}
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
             <MaterialIcons name="security" size={20} color="#5CE1E6" />
@@ -385,7 +372,6 @@ const SecurityScreen = () => {
           </View>
         </View>
 
-        {/* Sección de Sesión */}
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
             <MaterialIcons name="timer" size={20} color="#5CE1E6" />
@@ -433,7 +419,6 @@ const SecurityScreen = () => {
           </View>
         </View>
 
-        {/* Sección de Actividad */}
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
             <MaterialIcons name="history" size={20} color="#5CE1E6" />
@@ -462,20 +447,9 @@ const SecurityScreen = () => {
                 </View>
               </View>
             ))}
-            
-            {recentActivity.length > 3 && (
-              <TouchableOpacity 
-                style={styles.viewAllButton}
-                onPress={() => setActivityLogVisible(true)}
-              >
-                <Text style={styles.viewAllText}>Ver toda la actividad</Text>
-                <MaterialIcons name="chevron-right" size={20} color="#5CE1E6" />
-              </TouchableOpacity>
-            )}
           </View>
         </View>
 
-        {/* Información de seguridad */}
         <View style={styles.infoContainer}>
           <View style={styles.infoHeader}>
             <MaterialIcons name="info" size={18} color="#5CE1E6" />
@@ -489,7 +463,6 @@ const SecurityScreen = () => {
           </Text>
         </View>
 
-        {/* Botón de cierre de sesión en todos los dispositivos */}
         <TouchableOpacity 
           style={styles.logoutAllButton}
           onPress={() => Alert.alert(
@@ -508,11 +481,9 @@ const SecurityScreen = () => {
           <Text style={styles.logoutAllText}>Cerrar sesión en todos los dispositivos</Text>
         </TouchableOpacity>
 
-        {/* Espacio final */}
         <View style={{ height: 30 }} />
       </ScrollView>
 
-      {/* Modal de cambio de contraseña */}
       <Modal
         visible={changePasswordModal}
         transparent={true}
@@ -595,6 +566,441 @@ const SecurityScreen = () => {
       </Modal>
     </SafeAreaView>
   );
+};
+
+const styles = {
+  container: {
+    flex: 1,
+    backgroundColor: '#1a1a2e',
+  },
+  backgroundGradient: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    top: 0,
+    height: Platform.OS === 'ios' ? 200 : 180,
+  },
+  customHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 20,
+    paddingTop: Platform.OS === 'ios' ? 10 : 40,
+    paddingBottom: 10,
+    backgroundColor: 'transparent',
+  },
+  backButton: {
+    width: 40,
+    height: 40,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  headerCenter: {
+    alignItems: 'center',
+  },
+  headerTitle: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    color: '#FFFFFF',
+    letterSpacing: 1,
+  },
+  headerSubtitle: {
+    fontSize: 14,
+    color: '#5CE1E6',
+    marginTop: 2,
+    fontWeight: '500',
+  },
+  profileButton: {
+    width: 40,
+    height: 40,
+  },
+  profileCircle: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  profileInitial: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#FFFFFF',
+  },
+  dateContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 8,
+    marginHorizontal: 20,
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    borderRadius: 10,
+    marginTop: 5,
+  },
+  dateText: {
+    fontSize: 12,
+    color: '#FFFFFF',
+    marginLeft: 8,
+    fontWeight: '500',
+  },
+  scrollView: {
+    flex: 1,
+  },
+  scrollContent: {
+    paddingHorizontal: 20,
+    paddingTop: 10,
+    paddingBottom: 20,
+  },
+  section: {
+    marginBottom: 25,
+  },
+  sectionHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 15,
+    paddingBottom: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(92, 225, 230, 0.3)',
+  },
+  sectionTitle: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#FFFFFF',
+    marginLeft: 10,
+  },
+  securityList: {
+    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+    borderRadius: 12,
+    overflow: 'hidden',
+  },
+  securityItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    padding: 15,
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(255, 255, 255, 0.1)',
+  },
+  securityItemLast: {
+    borderBottomWidth: 0,
+  },
+  securityItemContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
+  },
+  securityIcon: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 12,
+  },
+  securityTextContainer: {
+    flex: 1,
+  },
+  securityTitle: {
+    fontSize: 14,
+    fontWeight: 'bold',
+    color: '#FFFFFF',
+    marginBottom: 3,
+  },
+  securitySubtitle: {
+    fontSize: 12,
+    color: '#a0a0c0',
+  },
+  securityAction: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  securityActionText: {
+    fontSize: 12,
+    color: '#5CE1E6',
+    fontWeight: 'bold',
+    marginRight: 5,
+  },
+  biometricToggle: {
+    width: 50,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    padding: 2,
+  },
+  biometricToggleActive: {
+    backgroundColor: '#5CE1E6',
+  },
+  toggleThumb: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    backgroundColor: '#FFFFFF',
+  },
+  toggleThumbActive: {
+    transform: [{ translateX: 22 }],
+  },
+  sessionContainer: {
+    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+    padding: 15,
+    borderRadius: 12,
+  },
+  sessionTitle: {
+    fontSize: 14,
+    fontWeight: 'bold',
+    color: '#FFFFFF',
+    marginBottom: 5,
+  },
+  sessionSubtitle: {
+    fontSize: 12,
+    color: '#a0a0c0',
+    marginBottom: 15,
+  },
+  timeoutOptions: {
+    gap: 10,
+  },
+  timeoutOption: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 12,
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    borderRadius: 8,
+  },
+  timeoutOptionSelected: {
+    backgroundColor: 'rgba(92, 225, 230, 0.2)',
+    borderWidth: 1,
+    borderColor: 'rgba(92, 225, 230, 0.4)',
+  },
+  timeoutRadio: {
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    borderWidth: 2,
+    borderColor: '#a0a0c0',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 10,
+  },
+  timeoutRadioInner: {
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+    backgroundColor: 'transparent',
+  },
+  timeoutRadioSelected: {
+    backgroundColor: '#5CE1E6',
+  },
+  timeoutText: {
+    fontSize: 14,
+    color: '#a0a0c0',
+    flex: 1,
+  },
+  timeoutTextSelected: {
+    color: '#FFFFFF',
+    fontWeight: 'bold',
+  },
+  activityContainer: {
+    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+    borderRadius: 12,
+    padding: 15,
+  },
+  activityItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 15,
+  },
+  activityIcon: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 12,
+  },
+  activityContent: {
+    flex: 1,
+  },
+  activityAction: {
+    fontSize: 14,
+    fontWeight: 'bold',
+    color: '#FFFFFF',
+    marginBottom: 3,
+  },
+  activityDetails: {
+    fontSize: 11,
+    color: '#a0a0c0',
+    marginBottom: 3,
+  },
+  activityTime: {
+    fontSize: 10,
+    color: '#5CE1E6',
+    fontWeight: '500',
+  },
+  infoContainer: {
+    backgroundColor: 'rgba(92, 225, 230, 0.1)',
+    padding: 15,
+    borderRadius: 12,
+    borderLeftWidth: 3,
+    borderLeftColor: '#5CE1E6',
+    marginBottom: 20,
+  },
+  infoHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 10,
+  },
+  infoTitle: {
+    fontSize: 14,
+    fontWeight: 'bold',
+    color: '#FFFFFF',
+    marginLeft: 8,
+  },
+  infoText: {
+    fontSize: 12,
+    color: '#5CE1E6',
+    lineHeight: 18,
+  },
+  logoutAllButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(255, 68, 68, 0.1)',
+    padding: 15,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 68, 68, 0.2)',
+  },
+  logoutAllText: {
+    fontSize: 14,
+    fontWeight: 'bold',
+    color: '#FF4444',
+    marginLeft: 10,
+    flex: 1,
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.8)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+  },
+  modalContent: {
+    backgroundColor: '#1a1a2e',
+    borderRadius: 20,
+    width: width * 0.9,
+    maxWidth: 400,
+    maxHeight: '80%',
+    borderWidth: 1,
+    borderColor: 'rgba(92, 225, 230, 0.3)',
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: 20,
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(255, 255, 255, 0.1)',
+  },
+  modalTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: '#FFFFFF',
+  },
+  modalScroll: {
+    paddingHorizontal: 20,
+    paddingVertical: 20,
+  },
+  passwordInputGroup: {
+    marginBottom: 20,
+  },
+  passwordLabel: {
+    fontSize: 14,
+    color: '#FFFFFF',
+    fontWeight: '500',
+    marginBottom: 8,
+  },
+  passwordInputContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    borderRadius: 12,
+    paddingHorizontal: 15,
+    paddingVertical: 12,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.2)',
+  },
+  inputError: {
+    borderColor: '#FF4444',
+    borderWidth: 1.5,
+  },
+  inputIcon: {
+    marginRight: 12,
+  },
+  passwordInput: {
+    flex: 1,
+    color: '#FFFFFF',
+    fontSize: 16,
+    padding: 0,
+  },
+  errorText: {
+    color: '#FF4444',
+    fontSize: 12,
+    marginTop: 5,
+    marginLeft: 5,
+  },
+  passwordRules: {
+    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+    padding: 15,
+    borderRadius: 12,
+    marginTop: 10,
+  },
+  rulesTitle: {
+    fontSize: 14,
+    fontWeight: 'bold',
+    color: '#FFFFFF',
+    marginBottom: 10,
+  },
+  ruleItem: {
+    fontSize: 12,
+    color: '#a0a0c0',
+    marginBottom: 5,
+    marginLeft: 10,
+  },
+  modalButtons: {
+    flexDirection: 'row',
+    padding: 20,
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(255, 255, 255, 0.1)',
+    gap: 10,
+  },
+  modalButton: {
+    flex: 1,
+    borderRadius: 12,
+    overflow: 'hidden',
+  },
+  modalButtonSecondary: {
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    borderWidth: 1,
+    borderColor: 'rgba(92, 225, 230, 0.4)',
+  },
+  modalButtonPrimary: {
+    backgroundColor: 'transparent',
+  },
+  modalButtonGradient: {
+    paddingVertical: 14,
+    paddingHorizontal: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  modalButtonSecondaryText: {
+    color: '#5CE1E6',
+    fontWeight: 'bold',
+    fontSize: 14,
+    textAlign: 'center',
+    paddingVertical: 14,
+  },
+  modalButtonPrimaryText: {
+    color: '#FFFFFF',
+    fontWeight: 'bold',
+    fontSize: 14,
+  },
 };
 
 export default SecurityScreen;

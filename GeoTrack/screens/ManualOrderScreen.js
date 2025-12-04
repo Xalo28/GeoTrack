@@ -18,14 +18,9 @@ import {
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { MaterialIcons } from '@expo/vector-icons';
-import Header from '../components/Header';
-import FormInputWithIcon from '../components/FormInputWithIcon';
-import DistrictSelector from '../components/DistrictSelector';
 import { useOrders } from '../context/OrdersContext';
-
 const { width, height } = Dimensions.get('window');
 
-// Función para formatear fecha en español
 const formatSpanishDate = () => {
   const date = new Date();
   
@@ -43,6 +38,38 @@ const formatSpanishDate = () => {
   return `${dayName.toUpperCase()}, ${day} DE ${month.toUpperCase()} DE ${year}`;
 };
 
+const DISTRICTS = [
+  'SAN JUAN DE LURIGANCHO',
+  'SANTIAGO DE SURCO',
+  'MIRAFLORES',
+  'SAN ISIDRO',
+  'LA MOLINA',
+  'SURCO',
+  'CHORRILLOS',
+  'VILLA EL SALVADOR',
+  'SAN MIGUEL',
+  'MAGDALENA',
+  'PUEBLO LIBRE',
+  'JESÚS MARÍA',
+  'LINCE',
+  'LA VICTORIA',
+  'BREÑA',
+  'LIMA',
+  'RIMAC',
+  'SANTA ANITA',
+  'ATE',
+  'SANTA ROSA',
+  'EL AGUSTINO',
+  'SAN JUAN DE MIRAFLORES',
+  'VILLA MARÍA DEL TRIUNFO',
+  'PACHACAMAC',
+  'PUNTA HERMOSA',
+  'PUNTA NEGRA',
+  'SAN BARTOLO',
+  'SANTA MARÍA DEL MAR',
+  'PUCUSANA'
+];
+
 const ManualOrderScreen = ({ navigation, route }) => {
   const { addOrder } = useOrders();
   const [isSaving, setIsSaving] = useState(false);
@@ -50,9 +77,9 @@ const ManualOrderScreen = ({ navigation, route }) => {
   const [modalScale] = useState(new Animated.Value(0.5));
   const [modalOpacity] = useState(new Animated.Value(0));
   const [savedOrder, setSavedOrder] = useState(null);
+  const [districtModal, setDistrictModal] = useState(false);
   const [currentDate] = useState(formatSpanishDate());
 
-  // Verificar si estamos en modo edición
   const isEditMode = route.params?.orderData;
   const editOrderData = route.params?.orderData;
 
@@ -68,7 +95,6 @@ const ManualOrderScreen = ({ navigation, route }) => {
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const slideAnim = useRef(new Animated.Value(20)).current;
 
-  // Si estamos en modo edición, cargar los datos
   useEffect(() => {
     if (isEditMode && editOrderData) {
       setFormData({
@@ -80,7 +106,6 @@ const ManualOrderScreen = ({ navigation, route }) => {
       });
     }
     
-    // Animación de entrada
     Animated.parallel([
       Animated.timing(fadeAnim, {
         toValue: 1,
@@ -95,7 +120,6 @@ const ManualOrderScreen = ({ navigation, route }) => {
     ]).start();
   }, [isEditMode, editOrderData]);
 
-  // Animación para el modal de éxito
   const animateModalIn = () => {
     setShowSuccessModal(true);
     Animated.parallel([
@@ -142,6 +166,11 @@ const ManualOrderScreen = ({ navigation, route }) => {
     }
   };
 
+  const handleDistrictSelect = (district) => {
+    handleInputChange('district', district);
+    setDistrictModal(false);
+  };
+
   const validateForm = () => {
     let isValid = true;
     let newErrors = {};
@@ -163,7 +192,6 @@ const ManualOrderScreen = ({ navigation, route }) => {
       isValid = false; 
     }
 
-    // Validar formato de teléfono
     if (formData.phone.trim() && !/^[0-9\s\+\-\(\)]{9,15}$/.test(formData.phone.replace(/\s/g, ''))) {
       newErrors.phone = 'Teléfono inválido';
       isValid = false;
@@ -174,7 +202,6 @@ const ManualOrderScreen = ({ navigation, route }) => {
   };
 
   const formatPhoneNumber = (phone) => {
-    // Formatear número de teléfono
     const cleaned = phone.replace(/\D/g, '');
     if (cleaned.length === 9) {
       return cleaned.replace(/(\d{3})(\d{3})(\d{3})/, '$1 $2 $3');
@@ -197,7 +224,6 @@ const ManualOrderScreen = ({ navigation, route }) => {
       try {
         setIsSaving(true);
 
-        // Simular espera
         await new Promise(resolve => setTimeout(resolve, 800));
 
         const phoneFormatted = formatPhoneNumber(formData.phone);
@@ -217,16 +243,14 @@ const ManualOrderScreen = ({ navigation, route }) => {
           fechaCreacionObj: currentDateObj,
           estado: 'pendiente',
           tipo: 'manual',
-          ...(isEditMode && { id: editOrderData.id }) // Mantener ID si es edición
+          ...(isEditMode && { id: editOrderData.id })
         };
 
         addOrder(newOrder);
         setSavedOrder(newOrder);
         
-        // Mostrar modal de éxito
         animateModalIn();
 
-        // Limpiar formulario si no es edición
         if (!isEditMode) {
           setTimeout(() => {
             setFormData({
@@ -272,17 +296,59 @@ const ManualOrderScreen = ({ navigation, route }) => {
 
   const scrollViewRef = useRef();
 
+  const DistrictSelector = () => (
+    <Modal
+      visible={districtModal}
+      transparent={true}
+      animationType="slide"
+      onRequestClose={() => setDistrictModal(false)}
+    >
+      <View style={styles.modalDistrictOverlay}>
+        <View style={styles.modalDistrictContent}>
+          <View style={styles.modalDistrictHeader}>
+            <Text style={styles.modalDistrictTitle}>Seleccionar Distrito</Text>
+            <TouchableOpacity 
+              style={styles.modalDistrictCloseButton}
+              onPress={() => setDistrictModal(false)}
+            >
+              <Text style={styles.modalDistrictCloseText}>✕</Text>
+            </TouchableOpacity>
+          </View>
+          
+          <ScrollView style={styles.districtList}>
+            {DISTRICTS.map((district, index) => (
+              <TouchableOpacity
+                key={index}
+                style={[
+                  styles.districtItem,
+                  formData.district === district && styles.selectedDistrict
+                ]}
+                onPress={() => handleDistrictSelect(district)}
+              >
+                <Text style={[
+                  styles.districtItemText,
+                  formData.district === district && styles.selectedDistrictText
+                ]}>
+                  {district}
+                </Text>
+                {formData.district === district && <Text style={styles.checkmark}>✓</Text>}
+              </TouchableOpacity>
+            ))}
+          </ScrollView>
+        </View>
+      </View>
+    </Modal>
+  );
+
   return (
     <SafeAreaView style={styles.container}>
       <StatusBar style="light" />
       
-      {/* Fondo gradiente */}
       <LinearGradient
         colors={['#1a1a2e', '#16213e']}
         style={styles.backgroundGradient}
       />
 
-      {/* Header personalizado */}
       <View style={styles.customHeader}>
         <TouchableOpacity 
           style={styles.backButton}
@@ -308,7 +374,6 @@ const ManualOrderScreen = ({ navigation, route }) => {
         </TouchableOpacity>
       </View>
 
-      {/* Fecha */}
       <View style={styles.dateContainer}>
         <MaterialIcons name="calendar-today" size={16} color="#5CE1E6" />
         <Text style={styles.dateText}>{currentDate}</Text>
@@ -340,7 +405,6 @@ const ManualOrderScreen = ({ navigation, route }) => {
             </View>
 
             <View style={styles.formContainer}>
-              {/* ID Pedido */}
               <View style={styles.inputGroup}>
                 <Text style={styles.inputLabel}>ID Pedido (Opcional)</Text>
                 <View style={[
@@ -359,7 +423,6 @@ const ManualOrderScreen = ({ navigation, route }) => {
                 </View>
               </View>
 
-              {/* Cliente */}
               <View style={styles.inputGroup}>
                 <View style={styles.labelContainer}>
                   <Text style={styles.inputLabel}>Cliente</Text>
@@ -384,7 +447,6 @@ const ManualOrderScreen = ({ navigation, route }) => {
                 )}
               </View>
 
-              {/* Teléfono */}
               <View style={styles.inputGroup}>
                 <View style={styles.labelContainer}>
                   <Text style={styles.inputLabel}>Teléfono</Text>
@@ -410,24 +472,32 @@ const ManualOrderScreen = ({ navigation, route }) => {
                 )}
               </View>
 
-              {/* Distrito - Usando DistrictSelector */}
               <View style={styles.inputGroup}>
                 <View style={styles.labelContainer}>
                   <Text style={styles.inputLabel}>Distrito</Text>
                   <Text style={styles.requiredStar}> *</Text>
                 </View>
-                <DistrictSelector
-                  value={formData.district}
-                  onSelect={(v) => handleInputChange('district', v)}
-                  error={errors.district}
-                  customStyle={errors.district ? styles.inputError : null}
-                />
+                <TouchableOpacity 
+                  style={[
+                    styles.inputContainer,
+                    errors.district && styles.inputError
+                  ]}
+                  onPress={() => setDistrictModal(true)}
+                >
+                  <MaterialIcons name="location-on" size={20} color="#5CE1E6" style={styles.inputIcon} />
+                  <Text style={[
+                    styles.districtText,
+                    !formData.district && styles.placeholderText
+                  ]}>
+                    {formData.district || 'Seleccione un distrito'}
+                  </Text>
+                  <MaterialIcons name="arrow-drop-down" size={24} color="#a0a0c0" />
+                </TouchableOpacity>
                 {errors.district && (
                   <Text style={styles.errorText}>{errors.district}</Text>
                 )}
               </View>
 
-              {/* Dirección */}
               <View style={styles.inputGroup}>
                 <View style={styles.labelContainer}>
                   <Text style={styles.inputLabel}>Dirección</Text>
@@ -454,7 +524,6 @@ const ManualOrderScreen = ({ navigation, route }) => {
                 )}
               </View>
 
-              {/* Información adicional */}
               <View style={styles.infoContainer}>
                 <MaterialIcons name="info" size={16} color="#5CE1E6" />
                 <Text style={styles.infoText}>
@@ -463,7 +532,6 @@ const ManualOrderScreen = ({ navigation, route }) => {
               </View>
             </View>
 
-            {/* Botones */}
             <View style={styles.buttonContainer}>
               <TouchableOpacity 
                 style={[styles.actionButton, styles.cancelButton]} 
@@ -493,12 +561,10 @@ const ManualOrderScreen = ({ navigation, route }) => {
             </View>
           </Animated.View>
 
-          {/* Espacio final */}
           <View style={{ height: 30 }} />
         </ScrollView>
       </KeyboardAvoidingView>
 
-      {/* Modal de éxito */}
       <Modal
         visible={showSuccessModal}
         transparent={true}
@@ -588,6 +654,8 @@ const ManualOrderScreen = ({ navigation, route }) => {
           </Animated.View>
         </Animated.View>
       </Modal>
+
+      <DistrictSelector />
     </SafeAreaView>
   );
 };
@@ -737,6 +805,14 @@ const styles = StyleSheet.create({
     fontSize: 16,
     padding: 0,
   },
+  districtText: {
+    flex: 1,
+    color: '#FFFFFF',
+    fontSize: 16,
+  },
+  placeholderText: {
+    color: '#a0a0c0',
+  },
   textArea: {
     minHeight: 80,
     textAlignVertical: 'top',
@@ -776,11 +852,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     minHeight: 52,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 5,
   },
   cancelButton: {
     backgroundColor: 'rgba(255, 255, 255, 0.1)',
@@ -807,7 +878,66 @@ const styles = StyleSheet.create({
     fontSize: 16,
     letterSpacing: 0.5,
   },
-  // Estilos del modal
+  modalDistrictOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'flex-end',
+  },
+  modalDistrictContent: {
+    backgroundColor: '#1a1a2e',
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    maxHeight: '70%',
+  },
+  modalDistrictHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: 20,
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(255, 255, 255, 0.1)',
+  },
+  modalDistrictTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#FFFFFF',
+  },
+  modalDistrictCloseButton: {
+    padding: 5,
+  },
+  modalDistrictCloseText: {
+    fontSize: 18,
+    color: '#a0a0c0',
+  },
+  districtList: {
+    maxHeight: 400,
+  },
+  districtItem: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: 15,
+    paddingHorizontal: 20,
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(255, 255, 255, 0.1)',
+  },
+  selectedDistrict: {
+    backgroundColor: 'rgba(92, 225, 230, 0.2)',
+  },
+  districtItemText: {
+    fontSize: 16,
+    color: '#FFFFFF',
+    flex: 1,
+  },
+  selectedDistrictText: {
+    color: '#5CE1E6',
+    fontWeight: '600',
+  },
+  checkmark: {
+    fontSize: 16,
+    color: '#4ECB71',
+    fontWeight: 'bold',
+  },
   modalOverlay: {
     flex: 1,
     backgroundColor: 'rgba(0, 0, 0, 0.8)',

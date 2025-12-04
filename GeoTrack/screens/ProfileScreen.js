@@ -6,7 +6,6 @@ import {
   TouchableOpacity, 
   SafeAreaView,
   Dimensions,
-  Platform,
   Alert,
   Modal,
   Animated,
@@ -15,7 +14,7 @@ import {
 import { LinearGradient } from 'expo-linear-gradient';
 import { MaterialIcons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
-import ProfileScreenStyles from '../styles/ProfileScreenStyles'; // Importa los estilos
+import { Platform } from 'react-native';
 
 const { width } = Dimensions.get('window');
 
@@ -29,7 +28,6 @@ const ProfileScreen = ({ navigation }) => {
   const options = { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' };
   const formattedDate = currentDate.toLocaleDateString('es-ES', options).toUpperCase();
 
-  // Información del perfil
   const profileInfo = {
     fullName: 'Juanito Lopez',
     email: 'juanito@geotrack.com',
@@ -114,103 +112,98 @@ const ProfileScreen = ({ navigation }) => {
   };
 
   const ProfileField = ({ icon, label, value, isLast = false }) => (
-    <View style={[ProfileScreenStyles.fieldContainer, isLast && ProfileScreenStyles.fieldLast]}>
-      <View style={ProfileScreenStyles.fieldIcon}>
+    <View style={[styles.fieldContainer, isLast && styles.fieldLast]}>
+      <View style={styles.fieldIcon}>
         <MaterialIcons name={icon} size={22} color="#5CE1E6" />
       </View>
-      <View style={ProfileScreenStyles.fieldContent}>
-        <Text style={ProfileScreenStyles.fieldLabel}>{label}</Text>
-        <Text style={ProfileScreenStyles.fieldValue}>{value}</Text>
+      <View style={styles.fieldContent}>
+        <Text style={styles.fieldLabel}>{label}</Text>
+        <Text style={styles.fieldValue}>{value}</Text>
       </View>
     </View>
   );
 
   const StatCard = ({ icon, label, value, color = '#5CE1E6' }) => (
-    <View style={ProfileScreenStyles.statCard}>
+    <View style={styles.statCard}>
       <LinearGradient
         colors={[`${color}20`, `${color}10`]}
-        style={ProfileScreenStyles.statGradient}
+        style={styles.statGradient}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 0 }}
       >
-        <View style={[ProfileScreenStyles.statIcon, { backgroundColor: `${color}20` }]}>
+        <View style={[styles.statIcon, { backgroundColor: `${color}20` }]}>
           <MaterialIcons name={icon} size={24} color={color} />
         </View>
-        <Text style={ProfileScreenStyles.statValue}>{value}</Text>
-        <Text style={ProfileScreenStyles.statLabel}>{label}</Text>
+        <Text style={styles.statValue}>{value}</Text>
+        <Text style={styles.statLabel}>{label}</Text>
       </LinearGradient>
     </View>
   );
 
   return (
-    <SafeAreaView style={ProfileScreenStyles.container}>
-      {/* Fondo gradiente */}
+    <SafeAreaView style={styles.container}>
       <LinearGradient
         colors={['#1a1a2e', '#16213e']}
-        style={ProfileScreenStyles.backgroundGradient}
+        style={styles.backgroundGradient}
       />
 
-      {/* Header personalizado */}
-      <View style={ProfileScreenStyles.customHeader}>
+      <View style={styles.customHeader}>
         <TouchableOpacity 
-          style={ProfileScreenStyles.backButton}
+          style={styles.backButton}
           onPress={() => navigation.goBack()}
         >
           <MaterialIcons name="arrow-back" size={28} color="#FFFFFF" />
         </TouchableOpacity>
         
-        <View style={ProfileScreenStyles.headerCenter}>
-          <Text style={ProfileScreenStyles.headerTitle}>MI PERFIL</Text>
-          <Text style={ProfileScreenStyles.headerSubtitle}>JUANITO LOPEZ</Text>
+        <View style={styles.headerCenter}>
+          <Text style={styles.headerTitle}>MI PERFIL</Text>
+          <Text style={styles.headerSubtitle}>JUANITO LOPEZ</Text>
         </View>
         
-        <TouchableOpacity style={ProfileScreenStyles.profileButton}>
+        <TouchableOpacity style={styles.profileButton}>
           <LinearGradient
             colors={['#5CE1E6', '#00adb5']}
-            style={ProfileScreenStyles.profileCircle}
+            style={styles.profileCircle}
           >
-            <Text style={ProfileScreenStyles.profileInitial}>JL</Text>
+            <Text style={styles.profileInitial}>JL</Text>
           </LinearGradient>
         </TouchableOpacity>
       </View>
 
-      {/* Fecha */}
-      <View style={ProfileScreenStyles.dateContainer}>
+      <View style={styles.dateContainer}>
         <MaterialIcons name="calendar-today" size={16} color="#5CE1E6" />
-        <Text style={ProfileScreenStyles.dateText}>{formattedDate}</Text>
+        <Text style={styles.dateText}>{formattedDate}</Text>
       </View>
 
       <ScrollView 
-        style={ProfileScreenStyles.scrollView}
-        contentContainerStyle={ProfileScreenStyles.scrollContent}
+        style={styles.scrollView}
+        contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
-        {/* Avatar y foto de perfil */}
-        <View style={ProfileScreenStyles.avatarSection}>
-          <TouchableOpacity style={ProfileScreenStyles.avatarContainer} onPress={pickImage}>
+        <View style={styles.avatarSection}>
+          <TouchableOpacity style={styles.avatarContainer} onPress={pickImage}>
             <LinearGradient
               colors={['#5CE1E6', '#00adb5']}
-              style={ProfileScreenStyles.avatarGradient}
+              style={styles.avatarGradient}
             >
               {profileImage ? (
-                <Image source={{ uri: profileImage }} style={ProfileScreenStyles.avatarImage} />
+                <Image source={{ uri: profileImage }} style={styles.avatarImage} />
               ) : (
-                <Text style={ProfileScreenStyles.avatarText}>JL</Text>
+                <Text style={styles.avatarText}>JL</Text>
               )}
             </LinearGradient>
-            <View style={ProfileScreenStyles.changePhotoButton}>
+            <View style={styles.changePhotoButton}>
               <MaterialIcons name="camera-alt" size={16} color="#FFFFFF" />
             </View>
           </TouchableOpacity>
-          <Text style={ProfileScreenStyles.avatarName}>{profileInfo.fullName}</Text>
-          <View style={ProfileScreenStyles.statusBadge}>
+          <Text style={styles.avatarName}>{profileInfo.fullName}</Text>
+          <View style={styles.statusBadge}>
             <MaterialIcons name="circle" size={8} color="#4ECB71" />
-            <Text style={ProfileScreenStyles.statusText}>{profileInfo.status}</Text>
+            <Text style={styles.statusText}>{profileInfo.status}</Text>
           </View>
         </View>
 
-        {/* Estadísticas */}
-        <View style={ProfileScreenStyles.statsContainer}>
+        <View style={styles.statsContainer}>
           <StatCard 
             icon="local-shipping" 
             label="Entregas" 
@@ -231,14 +224,13 @@ const ProfileScreen = ({ navigation }) => {
           />
         </View>
 
-        {/* Información del perfil */}
-        <View style={ProfileScreenStyles.profileSection}>
-          <View style={ProfileScreenStyles.sectionHeader}>
+        <View style={styles.profileSection}>
+          <View style={styles.sectionHeader}>
             <MaterialIcons name="info" size={20} color="#5CE1E6" />
-            <Text style={ProfileScreenStyles.sectionTitle}>INFORMACIÓN PERSONAL</Text>
+            <Text style={styles.sectionTitle}>INFORMACIÓN PERSONAL</Text>
           </View>
           
-          <View style={ProfileScreenStyles.profileFields}>
+          <View style={styles.profileFields}>
             <ProfileField 
               icon="person" 
               label="Nombre Completo" 
@@ -273,44 +265,40 @@ const ProfileScreen = ({ navigation }) => {
           </View>
         </View>
 
-        {/* Botón Solicitar Cambios */}
         <TouchableOpacity 
-          style={ProfileScreenStyles.editButton}
+          style={styles.editButton}
           onPress={handleRequestChanges}
           activeOpacity={0.8}
         >
           <LinearGradient
             colors={['#5CE1E6', '#00adb5']}
-            style={ProfileScreenStyles.editButtonGradient}
+            style={styles.editButtonGradient}
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 0 }}
           >
             <MaterialIcons name="edit" size={20} color="#FFFFFF" />
-            <Text style={ProfileScreenStyles.editButtonText}>SOLICITAR CAMBIOS</Text>
+            <Text style={styles.editButtonText}>SOLICITAR CAMBIOS</Text>
           </LinearGradient>
         </TouchableOpacity>
 
-        {/* Información adicional */}
-        <View style={ProfileScreenStyles.infoContainer}>
-          <Text style={ProfileScreenStyles.infoText}>
+        <View style={styles.infoContainer}>
+          <Text style={styles.infoText}>
             Para modificar tu información personal, debes solicitar los cambios al administrador del sistema.
           </Text>
         </View>
 
-        {/* Espacio final */}
         <View style={{ height: 30 }} />
       </ScrollView>
 
-      {/* Modal de confirmación */}
       <Modal
         visible={modalVisible}
         transparent={true}
         animationType="none"
         onRequestClose={animateModalOut}
       >
-        <Animated.View style={[ProfileScreenStyles.modalOverlay, { opacity: modalOpacity }]}>
+        <Animated.View style={[styles.modalOverlay, { opacity: modalOpacity }]}>
           <Animated.View style={[
-            ProfileScreenStyles.modalContent,
+            styles.modalContent,
             {
               transform: [{ scale: modalScale }],
               opacity: modalOpacity
@@ -318,38 +306,38 @@ const ProfileScreen = ({ navigation }) => {
           ]}>
             <LinearGradient
               colors={['#5CE1E6', '#00adb5']}
-              style={ProfileScreenStyles.modalIcon}
+              style={styles.modalIcon}
               start={{ x: 0, y: 0 }}
               end={{ x: 1, y: 1 }}
             >
               <MaterialIcons name="edit" size={40} color="#FFFFFF" />
             </LinearGradient>
             
-            <Text style={ProfileScreenStyles.modalTitle}>Solicitar Cambios</Text>
+            <Text style={styles.modalTitle}>Solicitar Cambios</Text>
             
-            <Text style={ProfileScreenStyles.modalSubtitle}>
+            <Text style={styles.modalSubtitle}>
               Se enviará una solicitud formal al administrador para modificar tu información personal. ¿Deseas continuar?
             </Text>
             
-            <View style={ProfileScreenStyles.modalButtons}>
+            <View style={styles.modalButtons}>
               <TouchableOpacity 
-                style={[ProfileScreenStyles.modalButton, ProfileScreenStyles.modalButtonSecondary]}
+                style={[styles.modalButton, styles.modalButtonSecondary]}
                 onPress={animateModalOut}
               >
-                <Text style={ProfileScreenStyles.modalButtonSecondaryText}>CANCELAR</Text>
+                <Text style={styles.modalButtonSecondaryText}>CANCELAR</Text>
               </TouchableOpacity>
               
               <TouchableOpacity 
-                style={[ProfileScreenStyles.modalButton, ProfileScreenStyles.modalButtonPrimary]}
+                style={[styles.modalButton, styles.modalButtonPrimary]}
                 onPress={confirmRequest}
               >
                 <LinearGradient
                   colors={['#5CE1E6', '#00adb5']}
-                  style={ProfileScreenStyles.modalButtonGradient}
+                  style={styles.modalButtonGradient}
                   start={{ x: 0, y: 0 }}
                   end={{ x: 1, y: 0 }}
                 >
-                  <Text style={ProfileScreenStyles.modalButtonPrimaryText}>CONFIRMAR</Text>
+                  <Text style={styles.modalButtonPrimaryText}>CONFIRMAR</Text>
                 </LinearGradient>
               </TouchableOpacity>
             </View>
@@ -358,6 +346,346 @@ const ProfileScreen = ({ navigation }) => {
       </Modal>
     </SafeAreaView>
   );
+};
+
+const styles = {
+  container: {
+    flex: 1,
+    backgroundColor: '#1a1a2e',
+  },
+  backgroundGradient: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    top: 0,
+    height: Platform.OS === 'ios' ? 200 : 180,
+  },
+  customHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 20,
+    paddingTop: Platform.OS === 'ios' ? 10 : 40,
+    paddingBottom: 10,
+    backgroundColor: 'transparent',
+  },
+  backButton: {
+    width: 40,
+    height: 40,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  headerCenter: {
+    alignItems: 'center',
+  },
+  headerTitle: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    color: '#FFFFFF',
+    letterSpacing: 1,
+  },
+  headerSubtitle: {
+    fontSize: 14,
+    color: '#5CE1E6',
+    marginTop: 2,
+    fontWeight: '500',
+  },
+  profileButton: {
+    width: 40,
+    height: 40,
+  },
+  profileCircle: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  profileInitial: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#FFFFFF',
+  },
+  dateContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 8,
+    marginHorizontal: 20,
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    borderRadius: 10,
+    marginTop: 5,
+  },
+  dateText: {
+    fontSize: 12,
+    color: '#FFFFFF',
+    marginLeft: 8,
+    fontWeight: '500',
+  },
+  scrollView: {
+    flex: 1,
+  },
+  scrollContent: {
+    paddingHorizontal: 20,
+    paddingTop: 10,
+    paddingBottom: 20,
+  },
+  avatarSection: {
+    alignItems: 'center',
+    marginBottom: 25,
+  },
+  avatarContainer: {
+    position: 'relative',
+    marginBottom: 15,
+  },
+  avatarGradient: {
+    width: 100,
+    height: 100,
+    borderRadius: 50,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  avatarImage: {
+    width: '100%',
+    height: '100%',
+    borderRadius: 50,
+  },
+  avatarText: {
+    fontSize: 36,
+    fontWeight: 'bold',
+    color: '#FFFFFF',
+  },
+  changePhotoButton: {
+    position: 'absolute',
+    bottom: 0,
+    right: 0,
+    backgroundColor: '#5CE1E6',
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 2,
+    borderColor: '#1a1a2e',
+  },
+  avatarName: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    color: '#FFFFFF',
+    marginBottom: 8,
+  },
+  statusBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(78, 203, 113, 0.2)',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 20,
+  },
+  statusText: {
+    fontSize: 12,
+    fontWeight: 'bold',
+    color: '#4ECB71',
+    marginLeft: 6,
+  },
+  statsContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: 25,
+    gap: 10,
+  },
+  statCard: {
+    flex: 1,
+  },
+  statGradient: {
+    padding: 15,
+    borderRadius: 12,
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.1)',
+  },
+  statIcon: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 10,
+  },
+  statValue: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: '#FFFFFF',
+    marginBottom: 5,
+  },
+  statLabel: {
+    fontSize: 12,
+    color: '#a0a0c0',
+  },
+  profileSection: {
+    marginBottom: 25,
+  },
+  sectionHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 15,
+    paddingBottom: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(92, 225, 230, 0.3)',
+  },
+  sectionTitle: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#FFFFFF',
+    marginLeft: 10,
+  },
+  profileFields: {
+    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+    borderRadius: 12,
+    overflow: 'hidden',
+  },
+  fieldContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 15,
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(255, 255, 255, 0.1)',
+  },
+  fieldLast: {
+    borderBottomWidth: 0,
+  },
+  fieldIcon: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: 'rgba(92, 225, 230, 0.2)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 12,
+  },
+  fieldContent: {
+    flex: 1,
+  },
+  fieldLabel: {
+    fontSize: 12,
+    color: '#a0a0c0',
+    marginBottom: 4,
+  },
+  fieldValue: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#FFFFFF',
+  },
+  editButton: {
+    marginBottom: 25,
+    borderRadius: 12,
+    overflow: 'hidden',
+  },
+  editButtonGradient: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 16,
+  },
+  editButtonText: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#FFFFFF',
+    marginLeft: 10,
+  },
+  infoContainer: {
+    backgroundColor: 'rgba(92, 225, 230, 0.1)',
+    padding: 15,
+    borderRadius: 12,
+    borderLeftWidth: 3,
+    borderLeftColor: '#5CE1E6',
+  },
+  infoText: {
+    fontSize: 12,
+    color: '#5CE1E6',
+    lineHeight: 18,
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.8)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+  },
+  modalContent: {
+    backgroundColor: '#1a1a2e',
+    borderRadius: 20,
+    padding: 25,
+    width: width * 0.9,
+    maxWidth: 400,
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: 'rgba(92, 225, 230, 0.3)',
+    shadowColor: '#5CE1E6',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.3,
+    shadowRadius: 15,
+    elevation: 10,
+  },
+  modalIcon: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 20,
+  },
+  modalTitle: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    color: '#FFFFFF',
+    marginBottom: 10,
+    textAlign: 'center',
+  },
+  modalSubtitle: {
+    fontSize: 16,
+    color: '#a0a0c0',
+    textAlign: 'center',
+    marginBottom: 25,
+    lineHeight: 22,
+  },
+  modalButtons: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    width: '100%',
+    gap: 10,
+  },
+  modalButton: {
+    flex: 1,
+    borderRadius: 12,
+    overflow: 'hidden',
+  },
+  modalButtonSecondary: {
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    borderWidth: 1,
+    borderColor: 'rgba(92, 225, 230, 0.4)',
+  },
+  modalButtonPrimary: {
+    backgroundColor: 'transparent',
+  },
+  modalButtonGradient: {
+    paddingVertical: 14,
+    paddingHorizontal: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  modalButtonSecondaryText: {
+    color: '#5CE1E6',
+    fontWeight: 'bold',
+    fontSize: 14,
+    textAlign: 'center',
+    paddingVertical: 14,
+  },
+  modalButtonPrimaryText: {
+    color: '#FFFFFF',
+    fontWeight: 'bold',
+    fontSize: 14,
+  },
 };
 
 export default ProfileScreen;

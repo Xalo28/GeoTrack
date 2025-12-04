@@ -13,11 +13,9 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { MaterialIcons } from '@expo/vector-icons';
 import * as WebBrowser from 'expo-web-browser';
 import { makeRedirectUri } from 'expo-auth-session';
-import MenuScreenStyles from '../styles/MenuScreenStyles'; // Importa los estilos
 
 const { width } = Dimensions.get('window');
 
-// TUS CREDENCIALES
 const AUTH0_DOMAIN = 'dev-usdq4caghn6ibx5y.us.auth0.com';
 const AUTH0_CLIENT_ID = 'cWXgVdLInYcSnZVi3w3isNhu0G1IKEwi';
 
@@ -31,13 +29,10 @@ const MenuScreen = ({ navigation }) => {
       const returnTo = makeRedirectUri({ scheme: 'geotrack' });
       const logoutUrl = `https://${AUTH0_DOMAIN}/v2/logout?client_id=${AUTH0_CLIENT_ID}&returnTo=${encodeURIComponent(returnTo)}`;
       
-      // Abrimos navegador para limpiar cookie de Auth0
       await WebBrowser.openAuthSessionAsync(logoutUrl, returnTo);
       
-      // Reseteamos navegación al Login
       navigation.reset({ index: 0, routes: [{ name: 'Login' }] });
     } catch (e) {
-      // Si falla, forzamos salida local
       navigation.reset({ index: 0, routes: [{ name: 'Login' }] });
     }
   };
@@ -56,20 +51,20 @@ const MenuScreen = ({ navigation }) => {
   const MenuItem = ({ icon, title, subtitle, onPress, isFirst, isLast, iconColor = '#5CE1E6' }) => (
     <TouchableOpacity 
       style={[
-        MenuScreenStyles.menuItem,
-        isFirst && MenuScreenStyles.menuItemFirst,
-        isLast && MenuScreenStyles.menuItemLast
+        styles.menuItem,
+        isFirst && styles.menuItemFirst,
+        isLast && styles.menuItemLast
       ]} 
       onPress={onPress}
       activeOpacity={0.7}
     >
-      <View style={MenuScreenStyles.menuItemContent}>
-        <View style={[MenuScreenStyles.iconContainer, { backgroundColor: `rgba(${parseInt(iconColor.slice(1, 3), 16)}, ${parseInt(iconColor.slice(3, 5), 16)}, ${parseInt(iconColor.slice(5, 7), 16)}, 0.1)` }]}>
+      <View style={styles.menuItemContent}>
+        <View style={[styles.iconContainer, { backgroundColor: `rgba(${parseInt(iconColor.slice(1, 3), 16)}, ${parseInt(iconColor.slice(3, 5), 16)}, ${parseInt(iconColor.slice(5, 7), 16)}, 0.1)` }]}>
           <MaterialIcons name={icon} size={22} color={iconColor} />
         </View>
-        <View style={MenuScreenStyles.menuItemTextContainer}>
-          <Text style={MenuScreenStyles.menuItemTitle}>{title}</Text>
-          {subtitle && <Text style={MenuScreenStyles.menuItemSubtitle}>{subtitle}</Text>}
+        <View style={styles.menuItemTextContainer}>
+          <Text style={styles.menuItemTitle}>{title}</Text>
+          {subtitle && <Text style={styles.menuItemSubtitle}>{subtitle}</Text>}
         </View>
       </View>
       <MaterialIcons name="chevron-right" size={24} color="rgba(255, 255, 255, 0.3)" />
@@ -77,85 +72,80 @@ const MenuScreen = ({ navigation }) => {
   );
 
   return (
-    <SafeAreaView style={MenuScreenStyles.container}>
-      {/* Fondo gradiente */}
+    <SafeAreaView style={styles.container}>
       <LinearGradient
         colors={['#1a1a2e', '#16213e']}
-        style={MenuScreenStyles.backgroundGradient}
+        style={styles.backgroundGradient}
       />
 
-      {/* Header personalizado */}
-      <View style={MenuScreenStyles.customHeader}>
+      <View style={styles.customHeader}>
         <TouchableOpacity 
-          style={MenuScreenStyles.backButton}
+          style={styles.backButton}
           onPress={() => navigation.goBack()}
         >
           <MaterialIcons name="arrow-back" size={28} color="#FFFFFF" />
         </TouchableOpacity>
         
-        <View style={MenuScreenStyles.headerCenter}>
-          <Text style={MenuScreenStyles.headerTitle}>MENÚ</Text>
-          <Text style={MenuScreenStyles.headerSubtitle}>JUANITO LOPEZ</Text>
+        <View style={styles.headerCenter}>
+          <Text style={styles.headerTitle}>MENÚ</Text>
+          <Text style={styles.headerSubtitle}>JUANITO LOPEZ</Text>
         </View>
         
-        <TouchableOpacity style={MenuScreenStyles.profileButton}>
+        <TouchableOpacity style={styles.profileButton}>
           <LinearGradient
             colors={['#5CE1E6', '#00adb5']}
-            style={MenuScreenStyles.profileCircle}
+            style={styles.profileCircle}
           >
-            <Text style={MenuScreenStyles.profileInitial}>JL</Text>
+            <Text style={styles.profileInitial}>JL</Text>
           </LinearGradient>
         </TouchableOpacity>
       </View>
 
-      {/* Fecha */}
-      <View style={MenuScreenStyles.dateContainer}>
+      <View style={styles.dateContainer}>
         <MaterialIcons name="calendar-today" size={16} color="#5CE1E6" />
-        <Text style={MenuScreenStyles.dateText}>{formattedDate}</Text>
+        <Text style={styles.dateText}>{formattedDate}</Text>
       </View>
 
       <ScrollView 
-        style={MenuScreenStyles.scrollView}
-        contentContainerStyle={MenuScreenStyles.scrollContent}
+        style={styles.scrollView}
+        contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
-        {/* Perfil del usuario */}
-        <View style={MenuScreenStyles.profileCard}>
+        <View style={styles.profileCard}>
           <LinearGradient
             colors={['rgba(92, 225, 230, 0.2)', 'rgba(0, 173, 181, 0.1)']}
-            style={MenuScreenStyles.profileGradient}
+            style={styles.profileGradient}
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 0 }}
           >
-            <View style={MenuScreenStyles.avatarContainer}>
+            <View style={styles.avatarContainer}>
               <LinearGradient
                 colors={['#5CE1E6', '#00adb5']}
-                style={MenuScreenStyles.avatarGradient}
+                style={styles.avatarGradient}
               >
-                <Text style={MenuScreenStyles.avatarText}>JL</Text>
+                <Text style={styles.avatarText}>JL</Text>
               </LinearGradient>
             </View>
-            <View style={MenuScreenStyles.profileInfo}>
-              <Text style={MenuScreenStyles.profileName}>Juanito Lopez</Text>
-              <View style={MenuScreenStyles.profileRoleContainer}>
+            <View style={styles.profileInfo}>
+              <Text style={styles.profileName}>Juanito Lopez</Text>
+              <View style={styles.profileRoleContainer}>
                 <MaterialIcons name="directions-car" size={16} color="#5CE1E6" />
-                <Text style={MenuScreenStyles.profileRole}>Conductor / Repartidor</Text>
+                <Text style={styles.profileRole}>Conductor / Repartidor</Text>
               </View>
-              <View style={MenuScreenStyles.profileIdContainer}>
+              <View style={styles.profileIdContainer}>
                 <MaterialIcons name="badge" size={14} color="#a0a0c0" />
-                <Text style={MenuScreenStyles.profileId}>ID: DRV-2025-001</Text>
+                <Text style={styles.profileId}>ID: DRV-2025-001</Text>
               </View>
             </View>
           </LinearGradient>
         </View>
 
-        {/* Sección Cuenta */}
-        <View style={MenuScreenStyles.section}>
-          <View style={MenuScreenStyles.sectionHeader}>
-            <Text style={MenuScreenStyles.sectionTitle}>CUENTA</Text>
-            <View style={MenuScreenStyles.sectionDivider} />
+        <View style={styles.section}>
+          <View style={styles.sectionHeader}>
+            <Text style={styles.sectionTitle}>CUENTA</Text>
+            <View style={styles.sectionDivider} />
           </View>
-          <View style={MenuScreenStyles.menuItemsContainer}>
+          <View style={styles.menuItemsContainer}>
             <MenuItem 
               icon="person" 
               title="Mi Perfil" 
@@ -180,13 +170,12 @@ const MenuScreen = ({ navigation }) => {
           </View>
         </View>
 
-        {/* Sección Aplicación */}
-        <View style={MenuScreenStyles.section}>
-          <View style={MenuScreenStyles.sectionHeader}>
-            <Text style={MenuScreenStyles.sectionTitle}>APLICACIÓN</Text>
-            <View style={MenuScreenStyles.sectionDivider} />
+        <View style={styles.section}>
+          <View style={styles.sectionHeader}>
+            <Text style={styles.sectionTitle}>APLICACIÓN</Text>
+            <View style={styles.sectionDivider} />
           </View>
-          <View style={MenuScreenStyles.menuItemsContainer}>
+          <View style={styles.menuItemsContainer}>
             <MenuItem 
               icon="settings" 
               title="Configuración" 
@@ -205,42 +194,288 @@ const MenuScreen = ({ navigation }) => {
           </View>
         </View>
 
-        {/* Cerrar Sesión */}
         <TouchableOpacity 
-          style={MenuScreenStyles.logoutButton}
+          style={styles.logoutButton}
           onPress={confirmLogout}
           activeOpacity={0.8}
         >
           <LinearGradient
             colors={['rgba(255, 68, 68, 0.3)', 'rgba(255, 68, 68, 0.2)']}
-            style={MenuScreenStyles.logoutGradient}
+            style={styles.logoutGradient}
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 0 }}
           >
-            <View style={MenuScreenStyles.logoutContent}>
-              <View style={[MenuScreenStyles.iconContainer, { backgroundColor: 'rgba(255, 68, 68, 0.2)' }]}>
+            <View style={styles.logoutContent}>
+              <View style={[styles.iconContainer, { backgroundColor: 'rgba(255, 68, 68, 0.2)' }]}>
                 <MaterialIcons name="exit-to-app" size={24} color="#FF4444" />
               </View>
-              <View style={MenuScreenStyles.logoutTextContainer}>
-                <Text style={MenuScreenStyles.logoutTitle}>Cerrar Sesión</Text>
-                <Text style={MenuScreenStyles.logoutSubtitle}>Salir de tu cuenta actual</Text>
+              <View style={styles.logoutTextContainer}>
+                <Text style={styles.logoutTitle}>Cerrar Sesión</Text>
+                <Text style={styles.logoutSubtitle}>Salir de tu cuenta actual</Text>
               </View>
             </View>
           </LinearGradient>
         </TouchableOpacity>
 
-        {/* Información de versión */}
-        <View style={MenuScreenStyles.versionContainer}>
-          <Text style={MenuScreenStyles.versionText}>GeoTrack Delivery</Text>
-          <Text style={MenuScreenStyles.versionNumber}>Versión 1.0.0 (Build 2025)</Text>
-          <Text style={MenuScreenStyles.versionCopyright}>© 2025 GeoTrack. Todos los derechos reservados.</Text>
+        <View style={styles.versionContainer}>
+          <Text style={styles.versionText}>GeoTrack Delivery</Text>
+          <Text style={styles.versionNumber}>Versión 1.0.0 (Build 2025)</Text>
+          <Text style={styles.versionCopyright}>© 2025 GeoTrack. Todos los derechos reservados.</Text>
         </View>
         
-        {/* Espacio final */}
         <View style={{ height: 30 }} />
       </ScrollView>
     </SafeAreaView>
   );
+};
+
+const styles = {
+  container: {
+    flex: 1,
+    backgroundColor: '#1a1a2e',
+  },
+  backgroundGradient: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    top: 0,
+    height: Platform.OS === 'ios' ? 200 : 180,
+  },
+  customHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 20,
+    paddingTop: Platform.OS === 'ios' ? 10 : 40,
+    paddingBottom: 10,
+    backgroundColor: 'transparent',
+  },
+  backButton: {
+    width: 40,
+    height: 40,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  headerCenter: {
+    alignItems: 'center',
+  },
+  headerTitle: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    color: '#FFFFFF',
+    letterSpacing: 1,
+  },
+  headerSubtitle: {
+    fontSize: 14,
+    color: '#5CE1E6',
+    marginTop: 2,
+    fontWeight: '500',
+  },
+  profileButton: {
+    width: 40,
+    height: 40,
+  },
+  profileCircle: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  profileInitial: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#FFFFFF',
+  },
+  dateContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 8,
+    marginHorizontal: 20,
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    borderRadius: 10,
+    marginTop: 5,
+  },
+  dateText: {
+    fontSize: 12,
+    color: '#FFFFFF',
+    marginLeft: 8,
+    fontWeight: '500',
+  },
+  scrollView: {
+    flex: 1,
+  },
+  scrollContent: {
+    paddingHorizontal: 20,
+    paddingTop: 10,
+    paddingBottom: 20,
+  },
+  profileCard: {
+    marginBottom: 25,
+    borderRadius: 15,
+    overflow: 'hidden',
+  },
+  profileGradient: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 20,
+  },
+  avatarContainer: {
+    marginRight: 15,
+  },
+  avatarGradient: {
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  avatarText: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    color: '#FFFFFF',
+  },
+  profileInfo: {
+    flex: 1,
+  },
+  profileName: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#FFFFFF',
+    marginBottom: 5,
+  },
+  profileRoleContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 5,
+  },
+  profileRole: {
+    fontSize: 12,
+    color: '#5CE1E6',
+    marginLeft: 6,
+  },
+  profileIdContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  profileId: {
+    fontSize: 11,
+    color: '#a0a0c0',
+    marginLeft: 6,
+  },
+  section: {
+    marginBottom: 25,
+  },
+  sectionHeader: {
+    marginBottom: 15,
+  },
+  sectionTitle: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#FFFFFF',
+    marginBottom: 8,
+  },
+  sectionDivider: {
+    height: 1,
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+  },
+  menuItemsContainer: {
+    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+    borderRadius: 12,
+    overflow: 'hidden',
+  },
+  menuItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    padding: 15,
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(255, 255, 255, 0.1)',
+  },
+  menuItemFirst: {
+    borderTopLeftRadius: 12,
+    borderTopRightRadius: 12,
+  },
+  menuItemLast: {
+    borderBottomWidth: 0,
+    borderBottomLeftRadius: 12,
+    borderBottomRightRadius: 12,
+  },
+  menuItemContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
+  },
+  iconContainer: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 12,
+  },
+  menuItemTextContainer: {
+    flex: 1,
+  },
+  menuItemTitle: {
+    fontSize: 14,
+    fontWeight: 'bold',
+    color: '#FFFFFF',
+    marginBottom: 3,
+  },
+  menuItemSubtitle: {
+    fontSize: 12,
+    color: '#a0a0c0',
+  },
+  logoutButton: {
+    marginBottom: 25,
+    borderRadius: 12,
+    overflow: 'hidden',
+  },
+  logoutGradient: {
+    padding: 15,
+  },
+  logoutContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  logoutTextContainer: {
+    marginLeft: 12,
+    flex: 1,
+  },
+  logoutTitle: {
+    fontSize: 14,
+    fontWeight: 'bold',
+    color: '#FF4444',
+    marginBottom: 3,
+  },
+  logoutSubtitle: {
+    fontSize: 12,
+    color: 'rgba(255, 68, 68, 0.7)',
+  },
+  versionContainer: {
+    alignItems: 'center',
+    paddingVertical: 15,
+    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+    borderRadius: 12,
+  },
+  versionText: {
+    fontSize: 14,
+    fontWeight: 'bold',
+    color: '#5CE1E6',
+    marginBottom: 5,
+  },
+  versionNumber: {
+    fontSize: 12,
+    color: '#a0a0c0',
+    marginBottom: 3,
+  },
+  versionCopyright: {
+    fontSize: 10,
+    color: '#a0a0c0',
+    textAlign: 'center',
+  },
 };
 
 export default MenuScreen;
