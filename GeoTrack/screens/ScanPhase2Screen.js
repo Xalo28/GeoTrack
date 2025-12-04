@@ -1,173 +1,253 @@
-import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
-import { StatusBar } from 'expo-status-bar';
+import React, { useState, useEffect, useRef } from 'react';
+import { 
+  View, 
+  Text, 
+  SafeAreaView,
+  Dimensions,
+  Platform,
+  Animated,
+  Easing
+} from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
+import { MaterialIcons } from '@expo/vector-icons';
+import ScanPhase2ScreenStyles from '../styles/ScanPhase2ScreenStyles'; // Importa los estilos
 
-// Reutilizando componentes existentes
-import ScanHeader from '../components/ScanHeader';
-import ScanControls from '../components/ScanControls';
+const { width } = Dimensions.get('window');
 
-const ScanPhase2Screen = ({ navigation }) => {
+const ScanPhase2Screen = ({ navigation, route }) => {
   const [progress, setProgress] = useState(0);
   const [isComplete, setIsComplete] = useState(false);
+  const [processingText, setProcessingText] = useState('Verificando código...');
+  const progressAnim = useRef(new Animated.Value(0)).current;
+  const pulseAnim = useRef(new Animated.Value(1)).current;
+
+  const currentDate = new Date();
+  const options = { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' };
+  const formattedDate = currentDate.toLocaleDateString('es-ES', options).toUpperCase();
+
+  const scannedData = route.params?.scannedData || 'PEDIDO-XXXXX-XXXXX';
 
   useEffect(() => {
-    // Simular progreso de escaneo hasta el 100%
-    const progressInterval = setInterval(() => {
+    // Animación de pulso
+    Animated.loop(
+      Animated.sequence([
+        Animated.timing(pulseAnim, {
+          toValue: 1.1,
+          duration: 1000,
+          easing: Easing.ease,
+          useNativeDriver: true,
+        }),
+        Animated.timing(pulseAnim, {
+          toValue: 1,
+          duration: 1000,
+          easing: Easing.ease,
+          useNativeDriver: true,
+        }),
+      ])
+    ).start();
+
+    // Progreso animado
+    const progressAnimation = Animated.timing(progressAnim, {
+      toValue: 1,
+      duration: 4000,
+      easing: Easing.linear,
+      useNativeDriver: false,
+    });
+
+    progressAnimation.start();
+
+    // Simular proceso de verificación
+    const interval = setInterval(() => {
       setProgress(prev => {
-        if (prev >= 100) {
-          clearInterval(progressInterval);
+        const nextProgress = prev + Math.random() * 15;
+        
+        // Actualizar texto según el progreso
+        if (nextProgress >= 30 && nextProgress < 60) {
+          setProcessingText('Validando información...');
+        } else if (nextProgress >= 60 && nextProgress < 90) {
+          setProcessingText('Actualizando base de datos...');
+        } else if (nextProgress >= 90) {
+          setProcessingText('¡Proceso completado!');
+        }
+
+        if (nextProgress >= 100) {
+          clearInterval(interval);
           setIsComplete(true);
+          
+          // Navegar automáticamente después de 1 segundo
+          setTimeout(() => {
+            navigation.navigate('Success', { 
+              scannedData: scannedData,
+              scanDate: new Date().toISOString()
+            });
+          }, 1000);
+          
           return 100;
         }
-        return prev + 10;
+        return nextProgress;
       });
-    }, 300); 
+    }, 400);
 
-    return () => clearInterval(progressInterval);
+    return () => clearInterval(interval);
   }, []);
 
-  const handleContinue = () => {
-    if (isComplete) {
-      navigation.navigate('Success');
-    }
-  };
-
-  const ProgressArea = () => (
-    <View style={styles.scanContainer}>
-      <Text style={styles.scanningTitle}>ESCANEANDO</Text>
-      
-      <View style={styles.processingContainer}>
-        <Text style={styles.processingText}>
-          {isComplete ? '¡ESCANEO COMPLETADO!' : 'Procesando pedido...'}
-        </Text>
-        
-        
-        <View style={styles.progressBar}>
-          <View 
-            style={[
-              styles.progressFill,
-              { width: `${progress}%` }
-            ]} 
-          />
-        </View>
-        
-        <Text style={styles.progressText}>{progress}%</Text>
-      </View>
-
-      {isComplete && (
-        <Text style={styles.readyText}>
-          Listo para continuar
-        </Text>
-      )}
-    </View>
-  );
+  const progressWidth = progressAnim.interpolate({
+    inputRange: [0, 1],
+    outputRange: ['0%', '100%'],
+  });
 
   return (
-    <View style={styles.container}>
-      <StatusBar style="dark" />
-      
-      <ScanHeader 
-        navigation={navigation}
-        phaseTitle="ESCANEO FASE - 2"
-        instruction="Procesando pedido, por favor espere..."
+    <SafeAreaView style={ScanPhase2ScreenStyles.container}>
+      {/* Fondo gradiente */}
+      <LinearGradient
+        colors={['#1a1a2e', '#16213e']}
+        style={ScanPhase2ScreenStyles.backgroundGradient}
       />
 
-      <ProgressArea />
-      
-      <View style={styles.controls}>
-        <TouchableOpacity 
-          style={[
-            styles.continueButton,
-            !isComplete && styles.buttonDisabled
-          ]}
-          onPress={handleContinue}
-          disabled={!isComplete}
-        >
-          <Text style={styles.continueButtonText}>
-            {isComplete ? 'CONTINUAR' : 'PROCESANDO...'}
-          </Text>
-        </TouchableOpacity>
+      {/* Header personalizado */}
+      <View style={ScanPhase2ScreenStyles.customHeader}>
+        <View style={ScanPhase2ScreenStyles.headerLeft}>
+          <Text style={ScanPhase2ScreenStyles.headerTitle}>ESCANEO FASE - 2</Text>
+          <Text style={ScanPhase2ScreenStyles.headerSubtitle}>JUANITO LOPEZ</Text>
+        </View>
+        
+        <View style={ScanPhase2ScreenStyles.profileButton}>
+          <LinearGradient
+            colors={['#5CE1E6', '#00adb5']}
+            style={ScanPhase2ScreenStyles.profileCircle}
+          >
+            <Text style={ScanPhase2ScreenStyles.profileInitial}>JL</Text>
+          </LinearGradient>
+        </View>
       </View>
-    </View>
+
+      {/* Fecha */}
+      <View style={ScanPhase2ScreenStyles.dateContainer}>
+        <MaterialIcons name="calendar-today" size={16} color="#5CE1E6" />
+        <Text style={ScanPhase2ScreenStyles.dateText}>{formattedDate}</Text>
+      </View>
+
+      {/* Instrucción */}
+      <View style={ScanPhase2ScreenStyles.instructionContainer}>
+        <Text style={ScanPhase2ScreenStyles.instructionText}>
+          Procesando pedido, por favor espere...
+        </Text>
+      </View>
+
+      {/* Contenido principal */}
+      <View style={ScanPhase2ScreenStyles.content}>
+        {/* Área de escaneo */}
+        <Animated.View 
+          style={[
+            ScanPhase2ScreenStyles.scanArea,
+            { transform: [{ scale: pulseAnim }] }
+          ]}
+        >
+          <LinearGradient
+            colors={['rgba(92, 225, 230, 0.1)', 'rgba(92, 225, 230, 0.05)']}
+            style={ScanPhase2ScreenStyles.scanAreaGradient}
+          >
+            <Text style={ScanPhase2ScreenStyles.scanningTitle}>ESCANEANDO</Text>
+            
+            <View style={ScanPhase2ScreenStyles.processingCard}>
+              <Text style={ScanPhase2ScreenStyles.processingText}>{processingText}</Text>
+              
+              {/* Barra de progreso */}
+              <View style={ScanPhase2ScreenStyles.progressContainer}>
+                <View style={ScanPhase2ScreenStyles.progressBar}>
+                  <Animated.View 
+                    style={[
+                      ScanPhase2ScreenStyles.progressFill,
+                      { width: progressWidth }
+                    ]} 
+                  />
+                </View>
+                
+                <Text style={ScanPhase2ScreenStyles.progressPercentage}>{Math.round(progress)}%</Text>
+              </View>
+
+              {/* Spinner animado */}
+              <View style={ScanPhase2ScreenStyles.spinnerContainer}>
+                <MaterialIcons 
+                  name={isComplete ? "check-circle" : "rotate-right"} 
+                  size={40} 
+                  color={isComplete ? "#4ECB71" : "#5CE1E6"} 
+                  style={ScanPhase2ScreenStyles.spinnerIcon}
+                />
+                <Text style={ScanPhase2ScreenStyles.processingIndicator}>
+                  {isComplete ? '¡PROCESO COMPLETADO!' : 'PROCESANDO...'}
+                </Text>
+              </View>
+            </View>
+          </LinearGradient>
+        </Animated.View>
+
+        {/* Información del pedido */}
+        <View style={ScanPhase2ScreenStyles.infoCard}>
+          <MaterialIcons name="inventory" size={20} color="#5CE1E6" />
+          <View style={ScanPhase2ScreenStyles.infoContent}>
+            <Text style={ScanPhase2ScreenStyles.infoLabel}>Código escaneado:</Text>
+            <Text style={ScanPhase2ScreenStyles.infoValue}>{scannedData}</Text>
+          </View>
+        </View>
+
+        {/* Pasos del proceso */}
+        <View style={ScanPhase2ScreenStyles.stepsContainer}>
+          <View style={ScanPhase2ScreenStyles.step}>
+            <View style={[ScanPhase2ScreenStyles.stepDot, ScanPhase2ScreenStyles.stepDotActive]} />
+            <Text style={[ScanPhase2ScreenStyles.stepText, ScanPhase2ScreenStyles.stepTextActive]}>Escaneo</Text>
+          </View>
+          
+          <View style={ScanPhase2ScreenStyles.stepLine} />
+          
+          <View style={ScanPhase2ScreenStyles.step}>
+            <View style={[
+              ScanPhase2ScreenStyles.stepDot, 
+              progress > 20 && ScanPhase2ScreenStyles.stepDotActive
+            ]} />
+            <Text style={[
+              ScanPhase2ScreenStyles.stepText, 
+              progress > 20 && ScanPhase2ScreenStyles.stepTextActive
+            ]}>Verificación</Text>
+          </View>
+          
+          <View style={ScanPhase2ScreenStyles.stepLine} />
+          
+          <View style={ScanPhase2ScreenStyles.step}>
+            <View style={[
+              ScanPhase2ScreenStyles.stepDot, 
+              progress > 50 && ScanPhase2ScreenStyles.stepDotActive
+            ]} />
+            <Text style={[
+              ScanPhase2ScreenStyles.stepText, 
+              progress > 50 && ScanPhase2ScreenStyles.stepTextActive
+            ]}>Procesando</Text>
+          </View>
+          
+          <View style={ScanPhase2ScreenStyles.stepLine} />
+          
+          <View style={ScanPhase2ScreenStyles.step}>
+            <View style={[
+              ScanPhase2ScreenStyles.stepDot, 
+              isComplete && ScanPhase2ScreenStyles.stepDotActive
+            ]} />
+            <Text style={[
+              ScanPhase2ScreenStyles.stepText, 
+              isComplete && ScanPhase2ScreenStyles.stepTextActive
+            ]}>Completado</Text>
+          </View>
+        </View>
+
+        {/* Mensaje informativo */}
+        <View style={ScanPhase2ScreenStyles.messageContainer}>
+          <MaterialIcons name="info" size={18} color="#5CE1E6" />
+          <Text style={ScanPhase2ScreenStyles.messageText}>
+            El proceso se completará automáticamente
+          </Text>
+        </View>
+      </View>
+    </SafeAreaView>
   );
 };
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#ffffff',
-  },
-  scanContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: 30,
-  },
-  scanningTitle: {
-    fontSize: 28,
-    fontWeight: 'bold',
-    color: '#000000',
-    marginBottom: 30,
-  },
-  processingContainer: {
-    backgroundColor: '#f8f9fa',
-    padding: 30,
-    borderRadius: 15,
-    borderWidth: 2,
-    borderColor: '#000000',
-    minWidth: 250,
-    alignItems: 'center',
-    marginBottom: 20,
-  },
-  processingText: {
-    color: '#000000',
-    fontSize: 18,
-    fontWeight: 'bold',
-    marginBottom: 20,
-    textAlign: 'center',
-  },
-  progressBar: {
-    width: 200,
-    height: 10,
-    backgroundColor: '#e0e0e0',
-    borderRadius: 5,
-    overflow: 'hidden',
-    marginBottom: 10,
-  },
-  progressFill: {
-    height: '100%',
-    backgroundColor: '#27ae60',
-    borderRadius: 5,
-  },
-  progressText: {
-    color: '#000000',
-    fontSize: 16,
-    fontWeight: 'bold',
-  },
-  readyText: {
-    color: '#27ae60',
-    fontSize: 16,
-    fontWeight: 'bold',
-    marginTop: 10,
-  },
-  controls: {
-    padding: 25,
-    backgroundColor: '#f8f9fa',
-  },
-  continueButton: {
-    backgroundColor: '#27ae60',
-    padding: 18,
-    borderRadius: 10,
-    alignItems: 'center',
-  },
-  buttonDisabled: {
-    backgroundColor: '#bdc3c7',
-  },
-  continueButtonText: {
-    color: '#ffffff',
-    fontSize: 18,
-    fontWeight: 'bold',
-  },
-});
 
 export default ScanPhase2Screen;
