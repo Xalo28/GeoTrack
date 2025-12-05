@@ -5,13 +5,21 @@ import {
   SafeAreaView,
   Dimensions,
   Animated,
-  TouchableOpacity,
   ScrollView,
   Platform
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { MaterialIcons } from '@expo/vector-icons';
 import { useOrders } from '../context/OrdersContext';
+
+// Componentes
+import SuccessIcon from '../components/success/SuccessIcon';
+import InfoCard from '../components/success/InfoCard';
+import CompletionBanner from '../components/success/CompletionBanner';
+import ActionButton from '../components/success/ActionButton';
+import AdditionalInfo from '../components/success/AdditionalInfo';
+import ScanAgainButton from '../components/success/ScanAgainButton';
+
 const { width, height } = Dimensions.get('window');
 
 const SuccessScreen = ({ navigation, route }) => {
@@ -21,7 +29,6 @@ const SuccessScreen = ({ navigation, route }) => {
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const pulseAnim = useRef(new Animated.Value(1)).current;
   
-  // Recibir los datos REALES del QR que vienen de ScanPhase2Screen
   console.log('SuccessScreen - Datos recibidos:', route.params);
   
   const { 
@@ -34,7 +41,6 @@ const SuccessScreen = ({ navigation, route }) => {
     scanDate = new Date().toISOString()
   } = route.params || {};
   
-  // Generar número de pedido único
   const generateOrderNumber = () => {
     const now = new Date();
     const dateStr = now.getFullYear() + 
@@ -48,20 +54,18 @@ const SuccessScreen = ({ navigation, route }) => {
   
   const orderNumber = generateOrderNumber();
   
-  // Convertir productos a array si es string
   const productosArray = Array.isArray(productos) ? productos : 
                         (typeof productos === 'string' ? [productos] : ['Producto no especificado']);
   
-  // Crear orden con datos REALES del QR
   const newOrderData = {
     numeroPedido: orderNumber,
-    cliente: nombre, // Usar el nombre REAL del QR
+    cliente: nombre,
     informacionContacto: {
-      direccion: dir, // Usar la dirección REAL del QR
-      telefono: cel   // Usar el teléfono REAL del QR
+      direccion: dir,
+      telefono: cel
     },
-    distrito: distrito, // Usar el distrito REAL del QR
-    productos: productosArray, // Usar los productos REALES del QR
+    distrito: distrito,
+    productos: productosArray,
     fechaEscaneo: scanDate,
     tipoEscaneo: scanType
   };
@@ -103,38 +107,11 @@ const SuccessScreen = ({ navigation, route }) => {
       })
     ]).start();
 
-    // Agregar la orden al contexto con los datos REALES del QR
     addOrder(newOrderData);
   }, []);
 
-  const handleAccept = () => {
-    navigation.navigate('Pedidos');
-  };
-
-  const handleGoHome = () => {
-    navigation.navigate('Home');
-  };
-
-  const SuccessIcon = () => (
-    <Animated.View 
-      style={[
-        styles.successIconContainer,
-        {
-          transform: [{ scale: scaleAnim }],
-          opacity: fadeAnim
-        }
-      ]}
-    >
-      <LinearGradient
-        colors={['#4ECB71', '#2E7D32']}
-        style={styles.successCircle}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 1 }}
-      >
-        <MaterialIcons name="check" size={60} color="#FFFFFF" />
-      </LinearGradient>
-    </Animated.View>
-  );
+  const handleAccept = () => navigation.navigate('Pedidos');
+  const handleGoHome = () => navigation.navigate('Home');
 
   return (
     <SafeAreaView style={styles.container}>
@@ -194,156 +171,47 @@ const SuccessScreen = ({ navigation, route }) => {
             >
               <Text style={styles.successTitle}>PEDIDO REGISTRADO</Text>
               
-              <SuccessIcon />
+              <SuccessIcon scaleAnim={scaleAnim} fadeAnim={fadeAnim} />
               
-              <View style={styles.infoCard}>
-                <View style={styles.infoSection}>
-                  <Text style={styles.label}>Número de Pedido:</Text>
-                  <Text style={styles.value}>{orderNumber}</Text>
-                </View>
-                
-                <View style={styles.divider} />
-                
-                <View style={styles.infoSection}>
-                  <Text style={styles.label}>Cliente:</Text>
-                  <Text style={styles.value}>{nombre}</Text>
-                </View>
-
-                <View style={styles.divider} />
-                
-                <View style={styles.infoSection}>
-                  <Text style={styles.label}>Teléfono:</Text>
-                  <Text style={styles.value}>{cel}</Text>
-                </View>
-
-                <View style={styles.divider} />
-                
-                <View style={styles.infoSection}>
-                  <Text style={styles.label}>Dirección:</Text>
-                  <Text style={styles.value}>{dir}</Text>
-                </View>
-
-                <View style={styles.divider} />
-                
-                <View style={styles.infoSection}>
-                  <Text style={styles.label}>Distrito:</Text>
-                  <Text style={styles.value}>{distrito}</Text>
-                </View>
-                
-                <View style={styles.divider} />
-                
-                <View style={styles.infoSection}>
-                  <Text style={styles.label}>Productos:</Text>
-                  <View style={styles.productsContainer}>
-                    {productosArray.map((producto, index) => (
-                      <View key={index} style={styles.productoItem}>
-                        <MaterialIcons name="check-circle" size={16} color="#4ECB71" />
-                        <Text style={styles.productoText}>{producto}</Text>
-                      </View>
-                    ))}
-                  </View>
-                </View>
-              </View>
-
-              <View style={styles.completionContainer}>
-                <MaterialIcons 
-                  name="verified" 
-                  size={30} 
-                  color="#4ECB71" 
-                  style={styles.verifiedIcon}
-                />
-                <Text style={styles.completionText}>
-                  ¡PROCESO COMPLETADO CON ÉXITO!
-                </Text>
-              </View>
+              <InfoCard 
+                orderNumber={orderNumber}
+                nombre={nombre}
+                cel={cel}
+                dir={dir}
+                distrito={distrito}
+                productosArray={productosArray}
+              />
+              
+              <CompletionBanner />
             </LinearGradient>
           </Animated.View>
 
           <View style={styles.buttonsContainer}>
-            <TouchableOpacity 
-              style={styles.actionButton}
+            <ActionButton
               onPress={handleAccept}
-              activeOpacity={0.8}
-            >
-              <LinearGradient
-                colors={['#5CE1E6', '#00adb5']}
-                style={styles.buttonGradient}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 0 }}
-              >
-                <MaterialIcons name="save" size={24} color="#FFFFFF" />
-                <Text style={styles.buttonText}>FINALIZAR Y GUARDAR</Text>
-              </LinearGradient>
-            </TouchableOpacity>
+              icon="save"
+              text="FINALIZAR Y GUARDAR"
+              colors={['#5CE1E6', '#00adb5']}
+            />
 
-            <TouchableOpacity 
-              style={[styles.actionButton, styles.homeButton]}
+            <ActionButton
               onPress={handleGoHome}
-              activeOpacity={0.8}
-            >
-              <LinearGradient
-                colors={['#9575CD', '#7E57C2']}
-                style={styles.buttonGradient}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 0 }}
-              >
-                <MaterialIcons name="home" size={24} color="#FFFFFF" />
-                <Text style={styles.buttonText}>VOLVER AL INICIO</Text>
-              </LinearGradient>
-            </TouchableOpacity>
+              icon="home"
+              text="VOLVER AL INICIO"
+              colors={['#9575CD', '#7E57C2']}
+            />
 
-            <TouchableOpacity 
-              style={[styles.actionButton, styles.scanAnotherButton]}
+            <ActionButton
               onPress={() => navigation.navigate('ScanPhase1')}
-              activeOpacity={0.8}
-            >
-              <LinearGradient
-                colors={['#FF9800', '#F57C00']}
-                style={styles.buttonGradient}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 0 }}
-              >
-                <MaterialIcons name="qr-code-scanner" size={24} color="#FFFFFF" />
-                <Text style={styles.buttonText}>ESCANEAR OTRO CÓDIGO</Text>
-              </LinearGradient>
-            </TouchableOpacity>
+              icon="qr-code-scanner"
+              text="ESCANEAR OTRO CÓDIGO"
+              colors={['#FF9800', '#F57C00']}
+            />
           </View>
 
-          <View style={styles.additionalInfo}>
-            <Text style={styles.additionalInfoTitle}>DETALLES ADICIONALES</Text>
-            <View style={styles.detailsGrid}>
-              <View style={styles.detailItem}>
-                <MaterialIcons name="access-time" size={20} color="#5CE1E6" />
-                <Text style={styles.detailLabel}>Hora de registro:</Text>
-                <Text style={styles.detailValue}>
-                  {new Date().toLocaleTimeString('es-ES', { 
-                    hour: '2-digit', 
-                    minute: '2-digit' 
-                  })}
-                </Text>
-              </View>
-              <View style={styles.detailItem}>
-                <MaterialIcons name="location-on" size={20} color="#5CE1E6" />
-                <Text style={styles.detailLabel}>Dirección:</Text>
-                <Text style={styles.detailValue}>{dir}</Text>
-              </View>
-              <View style={styles.detailItem}>
-                <MaterialIcons name="phone" size={20} color="#5CE1E6" />
-                <Text style={styles.detailLabel}>Teléfono:</Text>
-                <Text style={styles.detailValue}>{cel}</Text>
-              </View>
-            </View>
-          </View>
+          <AdditionalInfo dir={dir} cel={cel} />
 
-          <TouchableOpacity 
-            style={styles.scanAgainContainer}
-            onPress={() => navigation.navigate('ScanPhase1')}
-            activeOpacity={0.7}
-          >
-            <MaterialIcons name="refresh" size={18} color="#5CE1E6" />
-            <Text style={styles.scanAgainText}>¿Necesitas escanear más códigos? </Text>
-            <Text style={styles.scanAgainLink}>Comenzar nuevo escaneo</Text>
-          </TouchableOpacity>
+          <ScanAgainButton onPress={() => navigation.navigate('ScanPhase1')} />
         </Animated.View>
       </ScrollView>
     </SafeAreaView>
@@ -456,151 +324,9 @@ const styles = {
     marginBottom: 20,
     letterSpacing: 1,
   },
-  successIconContainer: {
-    marginBottom: 25,
-  },
-  successCircle: {
-    width: 120,
-    height: 120,
-    borderRadius: 60,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  infoCard: {
-    width: '100%',
-    backgroundColor: 'rgba(255, 255, 255, 0.05)',
-    borderRadius: 12,
-    padding: 15,
-    marginBottom: 20,
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.1)',
-  },
-  infoSection: {
-    marginBottom: 10,
-  },
-  label: {
-    fontSize: 12,
-    color: '#a0a0c0',
-    marginBottom: 5,
-  },
-  value: {
-    fontSize: 14,
-    fontWeight: 'bold',
-    color: '#FFFFFF',
-  },
-  productsContainer: {
-    marginTop: 5,
-  },
-  productoItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 5,
-  },
-  productoText: {
-    fontSize: 14,
-    color: '#5CE1E6',
-    marginLeft: 8,
-    fontWeight: '500',
-  },
-  divider: {
-    height: 1,
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
-    marginVertical: 10,
-  },
-  completionContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: 'rgba(78, 203, 113, 0.2)',
-    padding: 15,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: 'rgba(78, 203, 113, 0.4)',
-  },
-  verifiedIcon: {
-    marginRight: 10,
-  },
-  completionText: {
-    fontSize: 12,
-    fontWeight: 'bold',
-    color: '#4ECB71',
-    letterSpacing: 1,
-    flex: 1,
-  },
   buttonsContainer: {
     gap: 12,
     marginBottom: 20,
-  },
-  actionButton: {
-    borderRadius: 12,
-    overflow: 'hidden',
-  },
-  buttonGradient: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 16,
-  },
-  buttonText: {
-    fontSize: 14,
-    fontWeight: 'bold',
-    color: '#FFFFFF',
-    marginLeft: 10,
-  },
-  homeButton: {},
-  scanAnotherButton: {},
-  additionalInfo: {
-    backgroundColor: 'rgba(255, 255, 255, 0.05)',
-    borderRadius: 12,
-    padding: 15,
-    marginBottom: 20,
-  },
-  additionalInfoTitle: {
-    fontSize: 14,
-    fontWeight: 'bold',
-    color: '#FFFFFF',
-    marginBottom: 15,
-    textAlign: 'center',
-  },
-  detailsGrid: {
-    gap: 12,
-  },
-  detailItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  detailLabel: {
-    fontSize: 12,
-    color: '#a0a0c0',
-    marginLeft: 8,
-    marginRight: 10,
-    width: 100,
-  },
-  detailValue: {
-    fontSize: 12,
-    fontWeight: 'bold',
-    color: '#FFFFFF',
-    flex: 1,
-  },
-  scanAgainContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 15,
-    backgroundColor: 'rgba(92, 225, 230, 0.1)',
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: 'rgba(92, 225, 230, 0.2)',
-  },
-  scanAgainText: {
-    fontSize: 12,
-    color: '#5CE1E6',
-    marginLeft: 8,
-  },
-  scanAgainLink: {
-    fontSize: 12,
-    fontWeight: 'bold',
-    color: '#5CE1E6',
-    textDecorationLine: 'underline',
   },
 };
 

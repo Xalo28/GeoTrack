@@ -1,0 +1,251 @@
+import { Dimensions, Platform } from 'react-native';
+
+const { width } = Dimensions.get('window');
+
+export const styles = {
+  container: {
+    flex: 1,
+    backgroundColor: '#1a1a2e',
+  },
+  backgroundGradient: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    top: 0,
+    height: Platform.OS === 'ios' ? 200 : 180,
+  },
+  customHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 20,
+    paddingTop: Platform.OS === 'ios' ? 10 : 40,
+    paddingBottom: 10,
+    backgroundColor: 'transparent',
+  },
+  headerLeft: {
+    alignItems: 'flex-start',
+  },
+  headerTitle: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    color: '#FFFFFF',
+    letterSpacing: 1,
+  },
+  headerSubtitle: {
+    fontSize: 14,
+    color: '#5CE1E6',
+    marginTop: 2,
+    fontWeight: '500',
+  },
+  profileButton: {
+    width: 40,
+    height: 40,
+  },
+  profileCircle: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  profileInitial: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#FFFFFF',
+  },
+  dateContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 8,
+    marginHorizontal: 20,
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    borderRadius: 10,
+    marginTop: 5,
+  },
+  dateText: {
+    fontSize: 12,
+    color: '#FFFFFF',
+    marginLeft: 8,
+    fontWeight: '500',
+  },
+  instructionContainer: {
+    paddingHorizontal: 20,
+    marginTop: 15,
+    marginBottom: 10,
+  },
+  instructionText: {
+    fontSize: 16,
+    color: '#FFFFFF',
+    textAlign: 'center',
+    fontWeight: '500',
+  },
+  content: {
+    flex: 1,
+    paddingHorizontal: 20,
+    paddingTop: 20,
+  },
+  scanArea: {
+    borderRadius: 15,
+    overflow: 'hidden',
+    marginBottom: 20,
+  },
+  scanAreaGradient: {
+    padding: 20,
+    alignItems: 'center',
+  },
+  scanningTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: '#FFFFFF',
+    marginBottom: 20,
+    letterSpacing: 1,
+  },
+  processingCard: {
+    width: '100%',
+    alignItems: 'center',
+  },
+  processingText: {
+    fontSize: 16,
+    color: '#FFFFFF',
+    textAlign: 'center',
+    marginBottom: 20,
+    fontWeight: '500',
+  },
+  progressContainer: {
+    width: '100%',
+    marginBottom: 25,
+  },
+  progressBar: {
+    height: 8,
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    borderRadius: 4,
+    overflow: 'hidden',
+    marginBottom: 8,
+  },
+  progressFill: {
+    height: 8,
+    backgroundColor: '#5CE1E6',
+    borderRadius: 4,
+  },
+  progressPercentage: {
+    fontSize: 14,
+    fontWeight: 'bold',
+    color: '#5CE1E6',
+    textAlign: 'center',
+  },
+  spinnerContainer: {
+    alignItems: 'center',
+  },
+  spinnerIcon: {
+    marginBottom: 10,
+  },
+  processingIndicator: {
+    fontSize: 12,
+    fontWeight: 'bold',
+    color: '#5CE1E6',
+    letterSpacing: 1,
+  },
+  infoCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+    padding: 15,
+    borderRadius: 12,
+    marginBottom: 15,
+    borderWidth: 1,
+    borderColor: 'rgba(92, 225, 230, 0.2)',
+  },
+  infoContent: {
+    marginLeft: 12,
+    flex: 1,
+  },
+  infoLabel: {
+    fontSize: 12,
+    color: '#a0a0c0',
+    marginBottom: 4,
+  },
+  infoValue: {
+    fontSize: 14,
+    fontWeight: 'bold',
+    color: '#FFFFFF',
+  },
+  additionalInfoContainer: {
+    backgroundColor: 'rgba(255, 255, 255, 0.03)',
+    padding: 15,
+    borderRadius: 10,
+    marginBottom: 20,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.05)',
+  },
+  infoRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  infoLabelSmall: {
+    fontSize: 12,
+    color: '#a0a0c0',
+    marginLeft: 8,
+    marginRight: 8,
+    width: 70,
+  },
+  infoValueSmall: {
+    fontSize: 12,
+    color: '#FFFFFF',
+    fontWeight: '500',
+    flex: 1,
+  },
+  stepsContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 20,
+  },
+  step: {
+    alignItems: 'center',
+    flex: 1,
+  },
+  stepDot: {
+    width: 12,
+    height: 12,
+    borderRadius: 6,
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    marginBottom: 6,
+  },
+  stepDotActive: {
+    backgroundColor: '#5CE1E6',
+  },
+  stepText: {
+    fontSize: 10,
+    color: '#a0a0c0',
+    textAlign: 'center',
+  },
+  stepTextActive: {
+    color: '#5CE1E6',
+    fontWeight: 'bold',
+  },
+  stepLine: {
+    flex: 1,
+    height: 1,
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    marginHorizontal: 5,
+  },
+  messageContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(92, 225, 230, 0.1)',
+    padding: 12,
+    borderRadius: 8,
+    borderLeftWidth: 3,
+    borderLeftColor: '#5CE1E6',
+  },
+  messageText: {
+    fontSize: 12,
+    color: '#5CE1E6',
+    marginLeft: 8,
+    fontWeight: '500',
+  },
+};

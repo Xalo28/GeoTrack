@@ -3,20 +3,25 @@ import {
   View, 
   StatusBar, 
   Text, 
-  TouchableOpacity, 
-  ActivityIndicator, 
   Alert,
-  Dimensions,
-  Animated,
   KeyboardAvoidingView,
   Platform,
   SafeAreaView,
-  TextInput
+  Animated, 
+  Dimensions 
 } from 'react-native';
 import * as WebBrowser from 'expo-web-browser';
 import { makeRedirectUri, useAuthRequest, ResponseType } from 'expo-auth-session';
-import { LinearGradient } from 'expo-linear-gradient';
-import { MaterialIcons, FontAwesome5 } from '@expo/vector-icons';
+
+// Importar componentes - Asegúrate que la ruta sea correcta
+import {
+  BackgroundElements,
+  LogoHeader,
+  FeatureItem,
+  LoginButton,
+  SecurityNote,
+  styles
+} from '../components/login'; 
 
 WebBrowser.maybeCompleteAuthSession();
 
@@ -29,16 +34,14 @@ const discovery = {
   revocationEndpoint: `https://${AUTH0_DOMAIN}/oauth/revoke`,
 };
 
-const { width, height } = Dimensions.get('window');
-
 const LoginScreen = ({ navigation }) => {
   const [loading, setLoading] = useState(false);
   const fadeAnim = useState(new Animated.Value(0))[0];
   const slideAnim = useState(new Animated.Value(30))[0];
   const pulseAnim = useState(new Animated.Value(1))[0];
 
-  const redirectUri = makeRedirectUri({ scheme: 'geotrack',useProxy: true });
-  console.log("TU URL DE REDIRECCION ES:", redirectUri);
+  const redirectUri = makeRedirectUri({ scheme: 'geotrack', useProxy: true });
+  
   const [request, response, promptAsync] = useAuthRequest(
     {
       clientId: AUTH0_CLIENT_ID,
@@ -114,20 +117,17 @@ const LoginScreen = ({ navigation }) => {
     promptAsync({ useProxy: true });
   };
 
-  const AnimatedTouchableOpacity = Animated.createAnimatedComponent(TouchableOpacity);
+  const features = [
+    { icon: 'location-on', text: 'Rastreo en tiempo real' },
+    { icon: 'assessment', text: 'Reportes automatizados' },
+    { icon: 'security', text: 'Acceso seguro' },
+  ];
 
   return (
     <SafeAreaView style={styles.container}>
       <StatusBar barStyle="light-content" backgroundColor="#1a1a2e" />
       
-      <LinearGradient
-        colors={['#1a1a2e', '#16213e', '#0f3460']}
-        style={styles.backgroundGradient}
-      />
-      
-      <View style={styles.decorativeCircle1} />
-      <View style={styles.decorativeCircle2} />
-      <View style={styles.decorativeCircle3} />
+      <BackgroundElements />
       
       <KeyboardAvoidingView 
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
@@ -142,213 +142,35 @@ const LoginScreen = ({ navigation }) => {
             }
           ]}
         >
-          <View style={styles.logoContainer}>
-            <Animated.View style={{ transform: [{ scale: pulseAnim }] }}>
-              <View style={styles.logoCircle}>
-                <FontAwesome5 name="shipping-fast" size={60} color="#5CE1E6" />
-              </View>
-            </Animated.View>
-            
-            <Text style={styles.appName}>SAVA S.A.C</Text>
-            <View style={styles.divider} />
-            <Text style={styles.tagline}>Gestión de Logística Inteligente</Text>
-          </View>
+          <LogoHeader pulseAnim={pulseAnim} />
           
           <View style={styles.featuresContainer}>
-            <View style={styles.featureItem}>
-              <MaterialIcons name="location-on" size={24} color="#5CE1E6" />
-              <Text style={styles.featureText}>Rastreo en tiempo real</Text>
-            </View>
-            <View style={styles.featureItem}>
-              <MaterialIcons name="assessment" size={24} color="#5CE1E6" />
-              <Text style={styles.featureText}>Reportes automatizados</Text>
-            </View>
-            <View style={styles.featureItem}>
-              <MaterialIcons name="security" size={24} color="#5CE1E6" />
-              <Text style={styles.featureText}>Acceso seguro</Text>
-            </View>
+            {features.map((feature, index) => (
+              <FeatureItem 
+                key={index}
+                icon={feature.icon}
+                text={feature.text}
+              />
+            ))}
           </View>
           
-          <AnimatedTouchableOpacity 
-            style={[styles.authButton, { transform: [{ scale: pulseAnim }] }]} 
+          <LoginButton 
+            loading={loading}
+            pulseAnim={pulseAnim}
             onPress={handleLogin}
             disabled={!request || loading}
-            activeOpacity={0.8}
-          >
-            <LinearGradient
-              colors={['#5CE1E6', '#00adb5']}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 0 }}
-              style={styles.buttonGradient}
-            >
-              {loading ? (
-                <ActivityIndicator size="small" color="#FFFFFF" />
-              ) : (
-                <>
-                  <MaterialIcons name="login" size={24} color="#FFFFFF" style={styles.buttonIcon} />
-                  <Text style={styles.authButtonText}>INGRESAR / REGISTRARSE</Text>
-                </>
-              )}
-            </LinearGradient>
-          </AnimatedTouchableOpacity>
+          />
           
           <View style={styles.infoContainer}>
             <Text style={styles.infoText}>
               Accede a la plataforma de gestión logística más avanzada
             </Text>
-            <View style={styles.securityNote}>
-              <MaterialIcons name="verified-user" size={16} color="#5CE1E6" />
-              <Text style={styles.securityText}>Autenticación 100% segura con Auth0</Text>
-            </View>
+            <SecurityNote />
           </View>
         </Animated.View>
       </KeyboardAvoidingView>
     </SafeAreaView>
   );
-};
-
-const styles = {
-  container: {
-    flex: 1,
-    backgroundColor: '#1a1a2e',
-  },
-  backgroundGradient: {
-    position: 'absolute',
-    left: 0,
-    right: 0,
-    top: 0,
-    height: height,
-  },
-  decorativeCircle1: {
-    position: 'absolute',
-    top: -50,
-    right: -50,
-    width: 200,
-    height: 200,
-    borderRadius: 100,
-    backgroundColor: 'rgba(92, 225, 230, 0.1)',
-  },
-  decorativeCircle2: {
-    position: 'absolute',
-    bottom: -100,
-    left: -100,
-    width: 300,
-    height: 300,
-    borderRadius: 150,
-    backgroundColor: 'rgba(0, 173, 181, 0.05)',
-  },
-  decorativeCircle3: {
-    position: 'absolute',
-    top: '40%',
-    right: -80,
-    width: 160,
-    height: 160,
-    borderRadius: 80,
-    backgroundColor: 'rgba(92, 225, 230, 0.07)',
-  },
-  keyboardAvoid: {
-    flex: 1,
-    justifyContent: 'center',
-  },
-  contentContainer: {
-    paddingHorizontal: 30,
-    alignItems: 'center',
-  },
-  logoContainer: {
-    alignItems: 'center',
-    marginBottom: 50,
-  },
-  logoCircle: {
-    width: 120,
-    height: 120,
-    borderRadius: 60,
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: 20,
-    borderWidth: 2,
-    borderColor: 'rgba(92, 225, 230, 0.3)',
-  },
-  appName: {
-    fontSize: 32,
-    fontWeight: 'bold',
-    color: '#FFFFFF',
-    marginBottom: 10,
-    letterSpacing: 2,
-  },
-  divider: {
-    width: 60,
-    height: 3,
-    backgroundColor: '#5CE1E6',
-    marginBottom: 10,
-  },
-  tagline: {
-    fontSize: 14,
-    color: '#a0a0c0',
-    textAlign: 'center',
-  },
-  featuresContainer: {
-    width: '100%',
-    marginBottom: 40,
-  },
-  featureItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: 'rgba(255, 255, 255, 0.05)',
-    paddingVertical: 12,
-    paddingHorizontal: 20,
-    borderRadius: 10,
-    marginBottom: 12,
-  },
-  featureText: {
-    fontSize: 14,
-    color: '#FFFFFF',
-    marginLeft: 15,
-  },
-  authButton: {
-    width: '100%',
-    borderRadius: 12,
-    overflow: 'hidden',
-    marginBottom: 30,
-  },
-  buttonGradient: {
-    paddingVertical: 18,
-    flexDirection: 'row',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  buttonIcon: {
-    marginRight: 12,
-  },
-  authButtonText: {
-    color: '#FFFFFF',
-    fontSize: 16,
-    fontWeight: 'bold',
-    letterSpacing: 0.5,
-  },
-  infoContainer: {
-    alignItems: 'center',
-  },
-  infoText: {
-    fontSize: 14,
-    color: '#a0a0c0',
-    textAlign: 'center',
-    marginBottom: 15,
-    lineHeight: 20,
-  },
-  securityNote: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: 'rgba(92, 225, 230, 0.1)',
-    paddingVertical: 8,
-    paddingHorizontal: 15,
-    borderRadius: 20,
-  },
-  securityText: {
-    fontSize: 12,
-    color: '#5CE1E6',
-    marginLeft: 8,
-  },
 };
 
 export default LoginScreen;
