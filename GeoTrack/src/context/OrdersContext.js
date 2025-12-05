@@ -78,6 +78,12 @@ export const OrdersProvider = ({ children }) => {
     );
   };
 
+  // --- NUEVA FUNCIÓN AGREGADA ---
+  // Función para eliminar un pedido por ID
+  const removeOrder = (orderId) => {
+    setOrders(prevOrders => prevOrders.filter(order => order.id !== orderId));
+  };
+
   // Función para limpiar todos los pedidos (útil al cerrar sesión)
   const clearOrders = () => {
     setOrders([]);
@@ -89,6 +95,7 @@ export const OrdersProvider = ({ children }) => {
       hasOrders,
       addOrder,
       markAsDelivered,
+      removeOrder, // <--- No olvides exportar esto aquí
       clearOrders,
     }}>
       {children}

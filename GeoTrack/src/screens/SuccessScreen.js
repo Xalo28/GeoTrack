@@ -6,7 +6,8 @@ import {
   Dimensions,
   Animated,
   TouchableOpacity,
-  ScrollView
+  ScrollView,
+  Platform
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { MaterialIcons } from '@expo/vector-icons';
@@ -20,17 +21,49 @@ const SuccessScreen = ({ navigation, route }) => {
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const pulseAnim = useRef(new Animated.Value(1)).current;
   
-  const scannedData = route?.params?.scannedData || 'PEDIDO-XXXXX-XXXXX';
+  // Recibir los datos REALES del QR que vienen de ScanPhase2Screen
+  console.log('SuccessScreen - Datos recibidos:', route.params);
   
+  const { 
+    nombre = 'Cliente no especificado', 
+    cel = 'Teléfono no especificado', 
+    dir = 'Dirección no especificada', 
+    distrito = 'Distrito no especificado', 
+    productos = ['Producto no especificado'],
+    scanType = 'qr',
+    scanDate = new Date().toISOString()
+  } = route.params || {};
+  
+  // Generar número de pedido único
+  const generateOrderNumber = () => {
+    const now = new Date();
+    const dateStr = now.getFullYear() + 
+                   String(now.getMonth() + 1).padStart(2, '0') + 
+                   String(now.getDate()).padStart(2, '0');
+    const timeStr = String(now.getHours()).padStart(2, '0') + 
+                    String(now.getMinutes()).padStart(2, '0') + 
+                    String(now.getSeconds()).padStart(2, '0');
+    return `PEDIDO-${dateStr}-${timeStr}`;
+  };
+  
+  const orderNumber = generateOrderNumber();
+  
+  // Convertir productos a array si es string
+  const productosArray = Array.isArray(productos) ? productos : 
+                        (typeof productos === 'string' ? [productos] : ['Producto no especificado']);
+  
+  // Crear orden con datos REALES del QR
   const newOrderData = {
-    numeroPedido: scannedData,
-    cliente: "Cliente Escaneado",
+    numeroPedido: orderNumber,
+    cliente: nombre, // Usar el nombre REAL del QR
     informacionContacto: {
-      direccion: 'Dirección detectada por GPS',
-      telefono: '999-888-777'
+      direccion: dir, // Usar la dirección REAL del QR
+      telefono: cel   // Usar el teléfono REAL del QR
     },
-    distrito: 'San Isidro',
-    productos: ['Caja Registrada', 'Documentos']
+    distrito: distrito, // Usar el distrito REAL del QR
+    productos: productosArray, // Usar los productos REALES del QR
+    fechaEscaneo: scanDate,
+    tipoEscaneo: scanType
   };
 
   const currentDate = new Date();
@@ -38,6 +71,8 @@ const SuccessScreen = ({ navigation, route }) => {
   const formattedDate = currentDate.toLocaleDateString('es-ES', options).toUpperCase();
 
   useEffect(() => {
+    console.log('Orden creada con datos del QR:', newOrderData);
+    
     const pulseAnimation = Animated.loop(
       Animated.sequence([
         Animated.timing(pulseAnim, {
@@ -68,6 +103,7 @@ const SuccessScreen = ({ navigation, route }) => {
       })
     ]).start();
 
+    // Agregar la orden al contexto con los datos REALES del QR
     addOrder(newOrderData);
   }, []);
 
@@ -162,31 +198,50 @@ const SuccessScreen = ({ navigation, route }) => {
               
               <View style={styles.infoCard}>
                 <View style={styles.infoSection}>
-                  <Text style={styles.label}>Código Detectado:</Text>
-                  <Text style={styles.value}>{scannedData}</Text>
+                  <Text style={styles.label}>Número de Pedido:</Text>
+                  <Text style={styles.value}>{orderNumber}</Text>
                 </View>
                 
                 <View style={styles.divider} />
                 
                 <View style={styles.infoSection}>
                   <Text style={styles.label}>Cliente:</Text>
-                  <Text style={styles.value}>{newOrderData.cliente}</Text>
+                  <Text style={styles.value}>{nombre}</Text>
+                </View>
+
+                <View style={styles.divider} />
+                
+                <View style={styles.infoSection}>
+                  <Text style={styles.label}>Teléfono:</Text>
+                  <Text style={styles.value}>{cel}</Text>
+                </View>
+
+                <View style={styles.divider} />
+                
+                <View style={styles.infoSection}>
+                  <Text style={styles.label}>Dirección:</Text>
+                  <Text style={styles.value}>{dir}</Text>
                 </View>
 
                 <View style={styles.divider} />
                 
                 <View style={styles.infoSection}>
                   <Text style={styles.label}>Distrito:</Text>
-                  <Text style={styles.value}>{newOrderData.distrito}</Text>
+                  <Text style={styles.value}>{distrito}</Text>
                 </View>
                 
                 <View style={styles.divider} />
                 
                 <View style={styles.infoSection}>
                   <Text style={styles.label}>Productos:</Text>
-                  <Text style={styles.productsValue}>
-                    {newOrderData.productos.join(', ')}
-                  </Text>
+                  <View style={styles.productsContainer}>
+                    {productosArray.map((producto, index) => (
+                      <View key={index} style={styles.productoItem}>
+                        <MaterialIcons name="check-circle" size={16} color="#4ECB71" />
+                        <Text style={styles.productoText}>{producto}</Text>
+                      </View>
+                    ))}
+                  </View>
                 </View>
               </View>
 
@@ -270,16 +325,12 @@ const SuccessScreen = ({ navigation, route }) => {
               <View style={styles.detailItem}>
                 <MaterialIcons name="location-on" size={20} color="#5CE1E6" />
                 <Text style={styles.detailLabel}>Dirección:</Text>
-                <Text style={styles.detailValue}>
-                  {newOrderData.informacionContacto.direccion}
-                </Text>
+                <Text style={styles.detailValue}>{dir}</Text>
               </View>
               <View style={styles.detailItem}>
                 <MaterialIcons name="phone" size={20} color="#5CE1E6" />
                 <Text style={styles.detailLabel}>Teléfono:</Text>
-                <Text style={styles.detailValue}>
-                  {newOrderData.informacionContacto.telefono}
-                </Text>
+                <Text style={styles.detailValue}>{cel}</Text>
               </View>
             </View>
           </View>
@@ -437,10 +488,19 @@ const styles = {
     fontWeight: 'bold',
     color: '#FFFFFF',
   },
-  productsValue: {
+  productsContainer: {
+    marginTop: 5,
+  },
+  productoItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 5,
+  },
+  productoText: {
     fontSize: 14,
-    fontWeight: 'bold',
     color: '#5CE1E6',
+    marginLeft: 8,
+    fontWeight: '500',
   },
   divider: {
     height: 1,
