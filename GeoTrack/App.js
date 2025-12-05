@@ -1,33 +1,35 @@
 import React from 'react';
 import { NavigationContainer } from '@react-navigation/native';
 import { createStackNavigator } from '@react-navigation/stack';
-import { SafeAreaProvider } from 'react-native-safe-area-context'; // <--- 1. IMPORTANTE
-import { OrdersProvider } from './context/OrdersContext';
-import './polyfills';
+import { SafeAreaProvider } from 'react-native-safe-area-context'; 
+
+import { OrdersProvider } from './src/context/OrdersContext'; 
+
+import './polyfills'; 
+
 // Pantallas Principales
-import LoginScreen from './screens/LoginScreen';
-import HomeScreen from './screens/HomeScreen';
-import PedidosScreen from './screens/PedidosScreen';
-import MenuScreen from './screens/MenuScreen';
+import LoginScreen from './src/screens/LoginScreen';
+import HomeScreen from './src/screens/HomeScreen';
+import PedidosScreen from './src/screens/PedidosScreen';
+import MenuScreen from './src/screens/MenuScreen';
 
 // Pantallas de Flujo de Pedido
-import ScanPhase1Screen from './screens/ScanPhase1Screen';
-import ScanPhase2Screen from './screens/ScanPhase2Screen';
-import SuccessScreen from './screens/SuccessScreen';
-import ManualOrderScreen from './screens/ManualOrderScreen';
+import ScanPhase1Screen from './src/screens/ScanPhase1Screen';
+import ScanPhase2Screen from './src/screens/ScanPhase2Screen';
+import SuccessScreen from './src/screens/SuccessScreen';
+import ManualOrderScreen from './src/screens/ManualOrderScreen';
 
-// NUEVAS PANTALLAS DEL MENÚ
-import ProfileScreen from './screens/ProfileScreen';
-import NotificationsScreen from './screens/NotificationsScreen';
-import SecurityScreen from './screens/SecurityScreen';
-import SettingsScreen from './screens/SettingsScreen';
-import HelpScreen from './screens/HelpScreen';
+// Nuevas Pantallas del Menú
+import ProfileScreen from './src/screens/ProfileScreen';
+import NotificationsScreen from './src/screens/NotificationsScreen';
+import SecurityScreen from './src/screens/SecurityScreen';
+import SettingsScreen from './src/screens/SettingsScreen';
+import HelpScreen from './src/screens/HelpScreen';
 
 const Stack = createStackNavigator();
 
 export default function App() {
   return (
-    // 2. ENVOLVER TODO EN SafeAreaProvider
     <SafeAreaProvider>
       <OrdersProvider>
         <NavigationContainer>
@@ -43,7 +45,7 @@ export default function App() {
             <Stack.Screen name="Pedidos" component={PedidosScreen} />
             <Stack.Screen name="Menu" component={MenuScreen} />
             
-            {/* Funcionalidades del Menú (NUEVAS) */}
+            {/* Funcionalidades del Menú */}
             <Stack.Screen name="Profile" component={ProfileScreen} />
             <Stack.Screen name="Notifications" component={NotificationsScreen} />
             <Stack.Screen name="Security" component={SecurityScreen} />

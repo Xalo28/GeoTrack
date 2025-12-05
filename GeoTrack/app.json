@@ -25,9 +25,7 @@
       "package": "com.flavio.geotrack", 
       
       "config": {
-        "googleMaps": {
-          "apiKey": "AIzaSyCaD2fXca4-pOhRtBN9-3OaCrJLvU27Vbw"
-        }
+        
       } 
     },
     "web": {

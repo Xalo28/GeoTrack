@@ -23,8 +23,7 @@ import { useOrders } from '../context/OrdersContext';
 const { width } = Dimensions.get('window');
 
 // --- CONFIGURACIÓN DE GOOGLE API ---
-// ¡REEMPLAZA ESTO CON TU CLAVE REAL QUE OBTUVISTE EN GOOGLE CLOUD!
-const GOOGLE_API_KEY = 'PEGA_AQUI_TU_API_KEY_AIza...'; 
+const GOOGLE_API_KEY = process.env.EXPO_PUBLIC_GOOGLE_MAPS_API_KEY; 
 
 const formatSpanishDate = () => {
   const date = new Date();

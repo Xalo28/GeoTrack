@@ -15,16 +15,19 @@ import {
 } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import MapView, { Marker, PROVIDER_GOOGLE, Callout } from 'react-native-maps';
+import MapViewDirections from 'react-native-maps-directions';
 import * as Location from 'expo-location';
 import { LinearGradient } from 'expo-linear-gradient';
 import { MaterialIcons } from '@expo/vector-icons';
 import { Platform } from 'react-native';
 import { useOrders } from '../context/OrdersContext';
+import { getApproximateCoordinates, geocodeAddress } from '../utils/geocoding'; // 
 
 const { width, height } = Dimensions.get('window');
+const GOOGLE_MAPS_API_KEY = process.env.EXPO_PUBLIC_GOOGLE_MAPS_API_KEY;
 
 const PedidosScreen = ({ navigation, route }) => {
-const { districtFilter = 'TODOS' } = route.params || {}; 
+  const { districtFilter = 'TODOS' } = route.params || {}; 
   const { orders, markAsDelivered } = useOrders();
 
   const [selectedOrder, setSelectedOrder] = useState(null);
@@ -34,33 +37,51 @@ const { districtFilter = 'TODOS' } = route.params || {};
   const [searchQuery, setSearchQuery] = useState('');
   const [activeBottomTab, setActiveBottomTab] = useState('inicio');
   
-  const handleSMS = () => {
-    if (selectedOrder?.informacionContacto?.telefono) {
-      const phoneNumber = selectedOrder.informacionContacto.telefono.replace(/\D/g, '');
-      const message = `Hola ${selectedOrder.cliente}, le informamos que su pedido ${selectedOrder.numeroPedido} está en camino a su dirección.`;
-      
-      // La sintaxis cambia ligeramente entre iOS y Android para el cuerpo del mensaje
-      const separator = Platform.OS === 'ios' ? '&' : '?';
-      const url = `sms:${phoneNumber}${separator}body=${encodeURIComponent(message)}`;
-
-      Linking.openURL(url).catch(err => 
-        Alert.alert('Error', 'No se pudo abrir la aplicación de mensajes')
-      );
-    }
-  };
-
   const [location, setLocation] = useState(null);
   const [errorMsg, setErrorMsg] = useState(null);
   const [mapRegion, setMapRegion] = useState(null);
   const [mapType, setMapType] = useState('standard');
 
+  // Estados para la ruta optimizada
+  const [optimizedRoute, setOptimizedRoute] = useState(null);
+  const [isCalculatingRoute, setIsCalculatingRoute] = useState(false);
+  const [routeCoordinates, setRouteCoordinates] = useState([]);
+  const [optimizedOrderSequence, setOptimizedOrderSequence] = useState([]);
+  const [totalDistance, setTotalDistance] = useState(0);
+  const [estimatedTime, setEstimatedTime] = useState(0);
+
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const slideAnim = useRef(new Animated.Value(20)).current;
   const mapAnim = useRef(new Animated.Value(0)).current;
 
-  const filteredOrders = orders.filter(order => 
+  // Función para mejorar pedidos con coordenadas si no las tienen
+  const enhanceOrdersWithCoordinates = (ordersArray) => {
+    return ordersArray.map(order => {
+      // Si ya tiene coordenadas, mantenerlas
+      if (order.coordinate) {
+        return {
+          ...order,
+          coordinate: {
+            latitude: order.coordinate.latitude,
+            longitude: order.coordinate.longitude
+          }
+        };
+      }
+      
+      // Si no tiene coordenadas, usar geocoding
+      return {
+        ...order,
+        coordinate: getApproximateCoordinates(order.distrito)
+      };
+    });
+  };
+
+  // Filtrar pedidos y mejorar con coordenadas
+  const filteredOrdersRaw = orders.filter(order => 
     districtFilter === 'TODOS' ? true : order.distrito === districtFilter
   );
+
+  const filteredOrders = enhanceOrdersWithCoordinates(filteredOrdersRaw);
 
   const displayOrders = filteredOrders.filter(order => {
     const statusMatch = selectedStatus === 'all' ? true : 
@@ -111,6 +132,224 @@ const { districtFilter = 'TODOS' } = route.params || {};
     ]).start();
   }, [activeTab]);
 
+  // Función para calcular distancia entre dos puntos (fórmula Haversine)
+  const calculateHaversineDistance = (coord1, coord2) => {
+    const R = 6371; // Radio de la Tierra en km
+    const dLat = (coord2.latitude - coord1.latitude) * Math.PI / 180;
+    const dLon = (coord2.longitude - coord1.longitude) * Math.PI / 180;
+    const a = 
+      Math.sin(dLat/2) * Math.sin(dLat/2) +
+      Math.cos(coord1.latitude * Math.PI / 180) * Math.cos(coord2.latitude * Math.PI / 180) * 
+      Math.sin(dLon/2) * Math.sin(dLon/2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+    return R * c;
+  };
+
+  // Algoritmo del vecino más cercano
+  const calculateNearestNeighbor = (locations) => {
+    if (locations.length <= 1) return locations;
+
+    const visited = new Set();
+    const result = [];
+    
+    // Empezar desde la ubicación actual (índice 0)
+    let current = locations[0];
+    visited.add(0);
+    result.push(current);
+
+    while (visited.size < locations.length) {
+      let nearestIndex = -1;
+      let nearestDistance = Infinity;
+
+      for (let i = 0; i < locations.length; i++) {
+        if (!visited.has(i)) {
+          const distance = calculateHaversineDistance(
+            { latitude: current.latitude, longitude: current.longitude },
+            { latitude: locations[i].latitude, longitude: locations[i].longitude }
+          );
+          
+          if (distance < nearestDistance) {
+            nearestDistance = distance;
+            nearestIndex = i;
+          }
+        }
+      }
+
+      if (nearestIndex !== -1) {
+        current = locations[nearestIndex];
+        visited.add(nearestIndex);
+        result.push(current);
+      }
+    }
+
+    return result;
+  };
+
+  // Calcular distancia total de la ruta
+  const calculateTotalDistance = (sequence) => {
+    let totalDistance = 0;
+    
+    for (let i = 0; i < sequence.length - 1; i++) {
+      const distance = calculateHaversineDistance(
+        { latitude: sequence[i].latitude, longitude: sequence[i].longitude },
+        { latitude: sequence[i + 1].latitude, longitude: sequence[i + 1].longitude }
+      );
+      totalDistance += distance;
+    }
+    
+    return totalDistance;
+  };
+
+  // Función principal para calcular ruta optimizada
+  const calculateOptimalRoute = async () => {
+    try {
+      setIsCalculatingRoute(true);
+      
+      // Filtrar solo pedidos pendientes CON coordenadas
+      const pendingOrders = displayOrders.filter(order => 
+        order.estado !== 'Entregado' && order.coordinate
+      );
+
+      // Verificar si hay pedidos sin coordenadas (debería ser 0 ahora)
+      const ordersWithoutCoords = displayOrders.filter(order => 
+        order.estado !== 'Entregado' && !order.coordinate
+      );
+
+      if (pendingOrders.length === 0) {
+        Alert.alert(
+          '❌ No hay pedidos rutables',
+          ordersWithoutCoords.length > 0 
+            ? 'Todos los pedidos pendientes carecen de coordenadas GPS.'
+            : 'Todos los pedidos ya están entregados.'
+        );
+        setIsCalculatingRoute(false);
+        return;
+      }
+
+      // Obtener ubicación actual del usuario
+      const currentLocation = await Location.getCurrentPositionAsync({});
+      const origin = {
+        latitude: currentLocation.coords.latitude,
+        longitude: currentLocation.coords.longitude,
+      };
+
+      // Crear matriz de coordenadas (incluyendo ubicación actual)
+      const locations = [
+        { 
+          ...origin, 
+          isCurrentLocation: true,
+          orderId: 'current',
+          cliente: '📍 TU UBICACIÓN',
+          direccion: 'Punto de partida'
+        },
+        ...pendingOrders.map((order, index) => ({
+          latitude: order.coordinate.latitude,
+          longitude: order.coordinate.longitude,
+          orderId: order.id,
+          cliente: order.cliente,
+          direccion: order.informacionContacto?.direccion,
+          distrito: order.distrito,
+          orderIndex: index + 1
+        }))
+      ];
+
+      // Calcular secuencia óptima
+      const sequence = calculateNearestNeighbor(locations);
+      
+      // Preparar coordenadas para mostrar en el mapa
+      const routeCoords = sequence.map(loc => ({
+        latitude: loc.latitude,
+        longitude: loc.longitude,
+      }));
+
+      setOptimizedOrderSequence(sequence);
+      setRouteCoordinates(routeCoords);
+
+      // Calcular distancia total estimada
+      const totalDistanceKm = calculateTotalDistance(sequence);
+      setTotalDistance(totalDistanceKm);
+
+      // Estimar tiempo (asumiendo 30 km/h en promedio + 5 minutos por parada)
+      const travelTimeHours = totalDistanceKm / 30;
+      const stopTimeMinutes = pendingOrders.length * 5;
+      const totalTimeMinutes = (travelTimeHours * 60) + stopTimeMinutes;
+      setEstimatedTime(totalTimeMinutes);
+
+      setOptimizedRoute({
+        sequence,
+        totalDistance: totalDistanceKm,
+        estimatedTime: totalTimeMinutes,
+        stopCount: pendingOrders.length,
+        ordersWithCoords: pendingOrders.length,
+        ordersWithoutCoords: ordersWithoutCoords.length
+      });
+
+      // Cambiar a vista de mapa automáticamente
+      setActiveTab('map');
+      
+      Alert.alert(
+        '✅ Ruta Optimizada Calculada',
+        `📏 Distancia total: ${totalDistanceKm.toFixed(2)} km\n` +
+        `⏱️ Tiempo estimado: ${Math.round(totalTimeMinutes)} minutos\n` +
+        `📍 Paradas programadas: ${pendingOrders.length}\n`,
+        [{ text: 'VER RUTA EN EL MAPA' }]
+      );
+
+    } catch (error) {
+      console.error('Error calculando ruta:', error);
+      Alert.alert('❌ Error', 'No se pudo calcular la ruta optimizada.');
+    } finally {
+      setIsCalculatingRoute(false);
+    }
+  };
+
+  // Función para abrir ruta en Google Maps
+  const openRouteInGoogleMaps = () => {
+    if (!optimizedRoute || optimizedRoute.sequence.length < 2) {
+      Alert.alert('Error', 'Primero calcula una ruta optimizada.');
+      return;
+    }
+
+    const sequence = optimizedRoute.sequence;
+    
+    // Construir URL de Google Maps con waypoints optimizados
+    let url = 'https://www.google.com/maps/dir/?api=1&';
+    
+    // Origen
+    url += `origin=${sequence[0].latitude},${sequence[0].longitude}&`;
+    
+    // Destino (última ubicación)
+    const last = sequence[sequence.length - 1];
+    url += `destination=${last.latitude},${last.longitude}&`;
+    
+    // Waypoints (todos menos el primero y último)
+    if (sequence.length > 2) {
+      const waypoints = sequence.slice(1, -1);
+      url += `waypoints=${waypoints.map(wp => `${wp.latitude},${wp.longitude}`).join('|')}&`;
+    }
+    
+    // Optimizar waypoints
+    url += 'dir_action=navigate&travelmode=driving';
+    
+    Linking.openURL(url).catch(err => {
+      Alert.alert('Error', 'No se pudo abrir Google Maps.');
+    });
+  };
+
+  const handleSMS = () => {
+    if (selectedOrder?.informacionContacto?.telefono) {
+      const phoneNumber = selectedOrder.informacionContacto.telefono.replace(/\D/g, '');
+      const message = `Hola ${selectedOrder.cliente}, le informamos que su pedido ${selectedOrder.numeroPedido} está en camino a su dirección.`;
+      
+      const separator = Platform.OS === 'ios' ? '&' : '?';
+      const url = `sms:${phoneNumber}${separator}body=${encodeURIComponent(message)}`;
+
+      Linking.openURL(url).catch(err => 
+        Alert.alert('Error', 'No se pudo abrir la aplicación de mensajes')
+      );
+    }
+  };
+
   const handleOrderPress = (order) => {
     setSelectedOrder(order);
     setModalVisible(true);
@@ -122,17 +361,60 @@ const { districtFilter = 'TODOS' } = route.params || {};
   };
 
   const handleNavigateToOrder = (order) => {
-    Alert.alert('Navegar', `Navegando a: ${order.cliente}`);
+    if (order.coordinate) {
+      const url = `https://www.google.com/maps/dir/?api=1&destination=${order.coordinate.latitude},${order.coordinate.longitude}&travelmode=driving&dir_action=navigate`;
+      Linking.openURL(url);
+    } else {
+      Alert.alert(
+        '📍 Redirigiendo a Google Maps',
+        `Usando dirección aproximada de ${order.distrito} para navegación.`,
+        [
+          { text: 'Cancelar', style: 'cancel' },
+          { 
+            text: 'Abrir en Maps', 
+            onPress: () => {
+              // Usar coordenadas aproximadas del distrito
+              const coords = getApproximateCoordinates(order.distrito);
+              const url = `https://www.google.com/maps/dir/?api=1&destination=${coords.latitude},${coords.longitude}&travelmode=driving&dir_action=navigate`;
+              Linking.openURL(url);
+            }
+          }
+        ]
+      );
+    }
   };
 
   const handleEnrutar = () => {
-    Alert.alert('Enrutamiento', 'Iniciando ruta optimizada...');
+    // Contar pedidos pendientes
+    const pendingCount = displayOrders.filter(order => order.estado !== 'Entregado').length;
+    
+    if (pendingCount === 0) {
+      Alert.alert('No hay pedidos pendientes', 'Todos los pedidos ya están entregados.');
+      return;
+    }
+
+    Alert.alert(
+      '🚚 Optimizar Ruta de Entrega',
+      `¿Deseas calcular la ruta más óptima para ${pendingCount} pedido(s) pendiente(s)?\n\nTodos los pedidos tienen coordenadas aproximadas de sus distritos.`,
+      [
+        { text: 'Cancelar', style: 'cancel' },
+        { 
+          text: 'Calcular Ruta', 
+          onPress: calculateOptimalRoute 
+        }
+      ]
+    );
   };
 
   const handleMarkDelivered = () => {
     if (selectedOrder) {
       markAsDelivered(selectedOrder.id);
       handleCloseModal();
+      // Limpiar ruta si se marca como entregado
+      if (optimizedRoute) {
+        setOptimizedRoute(null);
+        setRouteCoordinates([]);
+      }
     }
   };
 
@@ -145,7 +427,7 @@ const { districtFilter = 'TODOS' } = route.params || {};
 
   const handleOpenMaps = () => {
     if (selectedOrder?.informacionContacto?.direccion) {
-      const address = encodeURIComponent(selectedOrder.informacionContacto.direccion);
+      const address = encodeURIComponent(`${selectedOrder.informacionContacto.direccion}, ${selectedOrder.distrito}, Lima`);
       Linking.openURL(`https://maps.google.com/?q=${address}`);
     }
   };
@@ -163,6 +445,24 @@ const { districtFilter = 'TODOS' } = route.params || {};
   const handleHomePress = () => {
     setActiveBottomTab('inicio');
     navigation.navigate('Home');
+  };
+
+  const handleClearRoute = () => {
+    Alert.alert(
+      'Limpiar Ruta',
+      '¿Estás seguro de que deseas eliminar la ruta optimizada actual?',
+      [
+        { text: 'Cancelar', style: 'cancel' },
+        { 
+          text: 'Limpiar', 
+          onPress: () => {
+            setOptimizedRoute(null);
+            setRouteCoordinates([]);
+            setOptimizedOrderSequence([]);
+          }
+        }
+      ]
+    );
   };
 
   const pendingCount = filteredOrders.filter(o => o.estado !== 'Entregado').length;
@@ -200,6 +500,11 @@ const { districtFilter = 'TODOS' } = route.params || {};
           <View style={styles.cardHeader}>
             <View style={styles.orderNumberContainer}>
               <Text style={styles.orderNumber}>#{index + 1}</Text>
+              {order.coordinate && (
+                <View style={styles.gpsIcon}>
+                  <MaterialIcons name="gps-fixed" size={10} color="#4ECB71" />
+                </View>
+              )}
             </View>
             
             <View style={styles.statusContainer}>
@@ -233,12 +538,15 @@ const { districtFilter = 'TODOS' } = route.params || {};
 
           <View style={styles.districtContainer}>
             <View style={styles.districtTag}>
+              <MaterialIcons name="location-city" size={10} color="#5CE1E6" style={{marginRight: 4}} />
               <Text style={styles.districtText}>{order.distrito || 'SIN DISTRITO'}</Text>
             </View>
             
             <View style={styles.timeContainer}>
               <MaterialIcons name="access-time" size={14} color="#a0a0c0" />
-              <Text style={styles.timeText}>15-30 min</Text>
+              <Text style={styles.timeText}>
+                {order.coordinate ? '15-30 min' : 'RUTA APROX.'}
+              </Text>
             </View>
           </View>
 
@@ -335,19 +643,67 @@ const { districtFilter = 'TODOS' } = route.params || {};
           showsMyLocationButton={true}
           mapType={mapType}
         >
-          {displayOrders.map((order, index) => {
-            const latOffset = (index % 3) * 0.002;
-            const lngOffset = (index % 2) * 0.002;
-            
-            const coordinate = order.coordinate || {
-              latitude: mapRegion.latitude + latOffset,
-              longitude: mapRegion.longitude + lngOffset,
-            };
+          {/* Mostrar ruta optimizada si existe */}
+          {routeCoordinates.length > 1 && (
+            <MapViewDirections
+              origin={routeCoordinates[0]}
+              destination={routeCoordinates[routeCoordinates.length - 1]}
+              waypoints={routeCoordinates.length > 2 ? routeCoordinates.slice(1, -1) : []}
+              apikey={GOOGLE_MAPS_API_KEY}
+              strokeWidth={5}
+              strokeColor="#5CE1E6"
+              optimizeWaypoints={true}
+              onReady={result => {
+                // Actualizar con datos más precisos de Google
+                setTotalDistance(result.distance);
+                setEstimatedTime(result.duration);
+              }}
+              onError={(errorMessage) => {
+                console.log('Error de Google Directions:', errorMessage);
+              }}
+            />
+          )}
 
+          {/* Marcadores de la ruta optimizada */}
+          {optimizedOrderSequence.map((location, index) => (
+            <Marker
+              key={`route-${index}-${location.orderId}`}
+              coordinate={{
+                latitude: location.latitude,
+                longitude: location.longitude,
+              }}
+              title={location.isCurrentLocation ? '📍 TU UBICACIÓN' : `📦 ${location.cliente}`}
+              description={location.isCurrentLocation ? 'Punto de partida' : `${location.distrito}\n${location.direccion}`}
+              onPress={() => {
+                if (!location.isCurrentLocation) {
+                  const order = displayOrders.find(o => o.id === location.orderId);
+                  if (order) handleOrderPress(order);
+                }
+              }}
+            >
+              <View style={[
+                styles.routeMarker,
+                index === 0 && styles.currentLocationMarker,
+                index === optimizedOrderSequence.length - 1 && styles.lastStopMarker
+              ]}>
+                <Text style={styles.markerNumber}>
+                  {index === 0 ? '📍' : index}
+                </Text>
+              </View>
+            </Marker>
+          ))}
+
+          {/* Marcadores de pedidos regulares (si no hay ruta optimizada) */}
+          {!optimizedRoute && displayOrders.map((order, index) => {
+            if (!order.coordinate) return null;
+            
             return (
               <Marker
                 key={order.id || index}
-                coordinate={coordinate}
+                coordinate={{
+                  latitude: order.coordinate.latitude,
+                  longitude: order.coordinate.longitude,
+                }}
                 title={order.cliente}
                 description={order.distrito}
                 pinColor={order.estado === 'Entregado' ? '#4ECB71' : '#FFA726'}
@@ -373,6 +729,58 @@ const { districtFilter = 'TODOS' } = route.params || {};
           })}
         </MapView>
 
+        {/* Información de la ruta optimizada */}
+        {optimizedRoute && (
+          <View style={styles.routeInfoContainer}>
+            <View style={styles.routeInfoCard}>
+              <View style={styles.routeInfoHeader}>
+                <Text style={styles.routeInfoTitle}>🗺️ RUTA OPTIMIZADA</Text>
+                <TouchableOpacity onPress={handleClearRoute} style={styles.clearRouteButton}>
+                  <MaterialIcons name="close" size={20} color="#FFFFFF" />
+                </TouchableOpacity>
+              </View>
+              
+              <View style={styles.routeStats}>
+                <View style={styles.routeStatItem}>
+                  <MaterialIcons name="directions" size={16} color="#5CE1E6" />
+                  <Text style={styles.routeStatText}>
+                    {totalDistance.toFixed(2)} km
+                  </Text>
+                </View>
+                <View style={styles.routeStatDivider} />
+                <View style={styles.routeStatItem}>
+                  <MaterialIcons name="access-time" size={16} color="#5CE1E6" />
+                  <Text style={styles.routeStatText}>
+                    {Math.round(estimatedTime)} min
+                  </Text>
+                </View>
+                <View style={styles.routeStatDivider} />
+                <View style={styles.routeStatItem}>
+                  <MaterialIcons name="location-pin" size={16} color="#5CE1E6" />
+                  <Text style={styles.routeStatText}>
+                    {optimizedRoute.stopCount} paradas
+                  </Text>
+                </View>
+              </View>
+
+              <TouchableOpacity 
+                style={styles.openInMapsButton}
+                onPress={openRouteInGoogleMaps}
+              >
+                <LinearGradient
+                  colors={['#4ECB71', '#2E7D32']}
+                  style={styles.openInMapsGradient}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 0 }}
+                >
+                  <MaterialIcons name="open-in-new" size={16} color="#FFFFFF" />
+                  <Text style={styles.openInMapsText}>ABRIR EN GOOGLE MAPS</Text>
+                </LinearGradient>
+              </TouchableOpacity>
+            </View>
+          </View>
+        )}
+
         <View style={styles.mapControls}>
           <TouchableOpacity 
             style={styles.mapControlButton}
@@ -390,8 +798,8 @@ const { districtFilter = 'TODOS' } = route.params || {};
             onPress={() => {
               setMapRegion({
                 ...mapRegion,
-                latitudeDelta: 0.005,
-                longitudeDelta: 0.005,
+                latitudeDelta: Math.max(mapRegion.latitudeDelta * 0.5, 0.001),
+                longitudeDelta: Math.max(mapRegion.longitudeDelta * 0.5, 0.001),
               });
             }}
           >
@@ -403,12 +811,28 @@ const { districtFilter = 'TODOS' } = route.params || {};
             onPress={() => {
               setMapRegion({
                 ...mapRegion,
-                latitudeDelta: 0.1,
-                longitudeDelta: 0.1,
+                latitudeDelta: Math.min(mapRegion.latitudeDelta * 2, 0.5),
+                longitudeDelta: Math.min(mapRegion.longitudeDelta * 2, 0.5),
               });
             }}
           >
             <MaterialIcons name="zoom-out" size={24} color="#FFFFFF" />
+          </TouchableOpacity>
+
+          <TouchableOpacity 
+            style={styles.mapControlButton}
+            onPress={() => {
+              Location.getCurrentPositionAsync({}).then(loc => {
+                setMapRegion({
+                  latitude: loc.coords.latitude,
+                  longitude: loc.coords.longitude,
+                  latitudeDelta: 0.05,
+                  longitudeDelta: 0.05,
+                });
+              });
+            }}
+          >
+            <MaterialIcons name="my-location" size={24} color="#FFFFFF" />
           </TouchableOpacity>
         </View>
       </View>
@@ -522,12 +946,22 @@ const { districtFilter = 'TODOS' } = route.params || {};
                       <Text style={styles.modalStatusText}>{selectedOrder.estado}</Text>
                     </View>
                   </View>
+                  {selectedOrder.coordinate && (
+                    <View style={styles.modalInfoRow}>
+                      <Text style={styles.modalInfoLabel}>Ubicación:</Text>
+                      <View style={styles.coordinateBadge}>
+                        <MaterialIcons name="location-on" size={12} color="#4ECB71" />
+                        <Text style={styles.coordinateText}>
+                          {selectedOrder.distrito || 'Aproximada'}
+                        </Text>
+                      </View>
+                    </View>
+                  )}
                 </View>
 
                 <View style={styles.modalSection}>
                   <Text style={styles.modalSectionTitle}>Información de Contacto</Text>
                   
-                  {/* CAMBIO AQUI: Contenedor fila para Telefono y SMS */}
                   <View style={styles.phoneRowContainer}>
                     <TouchableOpacity style={[styles.modalContactButton, styles.flex1]} onPress={handleCall}>
                       <MaterialIcons name="phone" size={20} color="#5CE1E6" />
@@ -536,7 +970,6 @@ const { districtFilter = 'TODOS' } = route.params || {};
                       </Text>
                     </TouchableOpacity>
 
-                    {/* Nuevo Botón de Carta/SMS */}
                     <TouchableOpacity style={styles.smsButton} onPress={handleSMS}>
                       <MaterialIcons name="mail" size={22} color="#FFFFFF" />
                     </TouchableOpacity>
@@ -570,6 +1003,12 @@ const { districtFilter = 'TODOS' } = route.params || {};
                     <Text style={styles.modalBold}>Distrito: </Text>
                     <Text>{selectedOrder.distrito || 'No especificado'}</Text>
                   </Text>
+                  <View style={styles.locationInfoCard}>
+                    <MaterialIcons name="info" size={14} color="#5CE1E6" />
+                    <Text style={styles.locationInfoText}>
+                      Ubicación basada en el distrito {selectedOrder.distrito}
+                    </Text>
+                  </View>
                 </View>
               </>
             )}
@@ -738,6 +1177,7 @@ const { districtFilter = 'TODOS' } = route.params || {};
           style={styles.enrutarButton}
           onPress={handleEnrutar}
           activeOpacity={0.8}
+          disabled={isCalculatingRoute}
         >
           <LinearGradient
             colors={['#5CE1E6', '#00adb5']}
@@ -745,8 +1185,19 @@ const { districtFilter = 'TODOS' } = route.params || {};
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 0 }}
           >
-            <MaterialIcons name="route" size={24} color="#FFFFFF" />
-            <Text style={styles.enrutarText}>OPTIMIZAR RUTA</Text>
+            {isCalculatingRoute ? (
+              <>
+                <ActivityIndicator size="small" color="#FFFFFF" />
+                <Text style={styles.enrutarText}>CALCULANDO...</Text>
+              </>
+            ) : (
+              <>
+                <MaterialIcons name="route" size={24} color="#FFFFFF" />
+                <Text style={styles.enrutarText}>
+                  {optimizedRoute ? 'RUTA CALCULADA' : 'OPTIMIZAR RUTA'}
+                </Text>
+              </>
+            )}
           </LinearGradient>
         </TouchableOpacity>
       )}
@@ -849,6 +1300,8 @@ const styles = {
     backgroundColor: 'rgba(255, 255, 255, 0.1)',
     borderWidth: 1,
     borderColor: 'rgba(255, 255, 255, 0.2)',
+    borderTopLeftRadius: 8,
+    borderBottomLeftRadius: 8,
   },
   tabButtonFirst: {
     borderTopLeftRadius: 8,
@@ -857,6 +1310,7 @@ const styles = {
   tabButtonLast: {
     borderTopRightRadius: 8,
     borderBottomRightRadius: 8,
+    borderLeftWidth: 0,
   },
   activeTabButton: {
     backgroundColor: '#5CE1E6',
@@ -965,11 +1419,20 @@ const styles = {
     alignItems: 'center',
     marginBottom: 12,
   },
-  orderNumberContainer: {},
+  orderNumberContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
   orderNumber: {
     fontSize: 12,
     fontWeight: 'bold',
     color: '#5CE1E6',
+  },
+  gpsIcon: {
+    marginLeft: 5,
+    backgroundColor: 'rgba(78, 203, 113, 0.2)',
+    padding: 2,
+    borderRadius: 4,
   },
   statusContainer: {},
   statusBadge: {
@@ -1041,6 +1504,8 @@ const styles = {
     marginBottom: 12,
   },
   districtTag: {
+    flexDirection: 'row',
+    alignItems: 'center',
     backgroundColor: 'rgba(255, 255, 255, 0.1)',
     paddingHorizontal: 10,
     paddingVertical: 4,
@@ -1166,6 +1631,104 @@ const styles = {
     fontWeight: 'bold',
     color: '#FFFFFF',
   },
+  routeInfoContainer: {
+    position: 'absolute',
+    top: 20,
+    left: 20,
+    right: 20,
+  },
+  routeInfoCard: {
+    backgroundColor: 'rgba(26, 26, 46, 0.95)',
+    borderRadius: 12,
+    padding: 15,
+    borderWidth: 2,
+    borderColor: '#5CE1E6',
+    shadowColor: '#5CE1E6',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 8,
+  },
+  routeInfoHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 10,
+  },
+  routeInfoTitle: {
+    fontSize: 14,
+    fontWeight: 'bold',
+    color: '#FFFFFF',
+  },
+  clearRouteButton: {
+    padding: 5,
+  },
+  routeStats: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    alignItems: 'center',
+    marginBottom: 10,
+  },
+  routeStatItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
+    justifyContent: 'center',
+  },
+  routeStatText: {
+    fontSize: 12,
+    color: '#FFFFFF',
+    marginLeft: 6,
+    fontWeight: '500',
+  },
+  routeStatDivider: {
+    width: 1,
+    height: 20,
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+  },
+  openInMapsButton: {
+    borderRadius: 8,
+    overflow: 'hidden',
+  },
+  openInMapsGradient: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 10,
+    paddingHorizontal: 15,
+  },
+  openInMapsText: {
+    fontSize: 12,
+    fontWeight: 'bold',
+    color: '#FFFFFF',
+    marginLeft: 8,
+  },
+  routeMarker: {
+    backgroundColor: '#5CE1E6',
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 2,
+    borderColor: '#FFFFFF',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 3,
+    elevation: 5,
+  },
+  currentLocationMarker: {
+    backgroundColor: '#4ECB71',
+  },
+  lastStopMarker: {
+    backgroundColor: '#FFA726',
+  },
+  markerNumber: {
+    color: '#FFFFFF',
+    fontWeight: 'bold',
+    fontSize: 12,
+  },
   enrutarButton: {
     position: 'absolute',
     bottom: 100,
@@ -1181,14 +1744,14 @@ const styles = {
   enrutarGradient: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 20,
-    paddingVertical: 12,
+    paddingHorizontal: 25,
+    paddingVertical: 14,
   },
   enrutarText: {
     fontSize: 14,
     fontWeight: 'bold',
     color: '#FFFFFF',
-    marginLeft: 8,
+    marginLeft: 10,
   },
   phoneRowContainer: {
     flexDirection: 'row',
@@ -1326,6 +1889,20 @@ const styles = {
     fontWeight: 'bold',
     color: '#000000',
   },
+  coordinateBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#d4edda',
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 12,
+  },
+  coordinateText: {
+    fontSize: 12,
+    color: '#155724',
+    marginLeft: 4,
+    fontWeight: '500',
+  },
   modalStatusBadge: {
     paddingHorizontal: 12,
     paddingVertical: 4,
@@ -1383,6 +1960,22 @@ const styles = {
   },
   modalBold: {
     fontWeight: 'bold',
+  },
+  locationInfoCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#d1ecf1',
+    padding: 10,
+    borderRadius: 8,
+    marginTop: 10,
+    borderWidth: 1,
+    borderColor: '#bee5eb',
+  },
+  locationInfoText: {
+    fontSize: 12,
+    color: '#0c5460',
+    marginLeft: 8,
+    flex: 1,
   },
   modalActionButtons: {
     padding: 20,
