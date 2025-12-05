@@ -21,14 +21,17 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { MaterialIcons } from '@expo/vector-icons';
 import { Platform } from 'react-native';
 import { useOrders } from '../context/OrdersContext';
-import { getApproximateCoordinates, geocodeAddress } from '../utils/geocoding'; // 
+import { getApproximateCoordinates, geocodeAddress } from '../utils/geocoding';
+
+// Importar Swipeable
+import { Swipeable } from 'react-native-gesture-handler';
 
 const { width, height } = Dimensions.get('window');
 const GOOGLE_MAPS_API_KEY = process.env.EXPO_PUBLIC_GOOGLE_MAPS_API_KEY;
 
 const PedidosScreen = ({ navigation, route }) => {
   const { districtFilter = 'TODOS' } = route.params || {}; 
-  const { orders, markAsDelivered } = useOrders();
+  const { orders, markAsDelivered, removeOrder } = useOrders();
 
   const [selectedOrder, setSelectedOrder] = useState(null);
   const [modalVisible, setModalVisible] = useState(false);
@@ -53,6 +56,59 @@ const PedidosScreen = ({ navigation, route }) => {
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const slideAnim = useRef(new Animated.Value(20)).current;
   const mapAnim = useRef(new Animated.Value(0)).current;
+  
+  // Referencias para los Swipeables
+  const swipeableRefs = useRef({});
+
+  // Función para manejar el deslizamiento y borrar pedido
+  const handleSwipeDelete = (orderId) => {
+    Alert.alert(
+      'Eliminar Pedido',
+      '¿Estás seguro de que deseas eliminar este pedido?',
+      [
+        { text: 'Cancelar', style: 'cancel' },
+        { 
+          text: 'Eliminar', 
+          style: 'destructive',
+          onPress: () => {
+            removeOrder(orderId);
+            // Cerrar el swipeable si está abierto
+            if (swipeableRefs.current[orderId]) {
+              swipeableRefs.current[orderId].close();
+            }
+          }
+        }
+      ]
+    );
+  };
+
+  // Función para renderizar las acciones al deslizar
+  const renderRightActions = (progress, dragX, orderId) => {
+    const scale = dragX.interpolate({
+      inputRange: [-100, 0],
+      outputRange: [1, 0],
+      extrapolate: 'clamp',
+    });
+
+    return (
+      <TouchableOpacity
+        style={styles.deleteAction}
+        onPress={() => handleSwipeDelete(orderId)}
+      >
+        <Animated.View style={[styles.deleteButton, { transform: [{ scale }] }]}>
+          <LinearGradient
+            colors={['#FF5252', '#D32F2F']}
+            style={styles.deleteGradient}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 0 }}
+          >
+            <MaterialIcons name="delete" size={24} color="#FFFFFF" />
+            <Text style={styles.deleteText}>ELIMINAR</Text>
+          </LinearGradient>
+        </Animated.View>
+      </TouchableOpacity>
+    );
+  };
 
   // Función para mejorar pedidos con coordenadas si no las tienen
   const enhanceOrdersWithCoordinates = (ordersArray) => {
@@ -475,369 +531,307 @@ const PedidosScreen = ({ navigation, route }) => {
   const options = { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' };
   const formattedDate = currentDate.toLocaleDateString('es-ES', options).toUpperCase();
 
-  const renderOrderCard = (order, index) => (
-    <Animated.View 
-      key={order.id || index}
-      style={[
-        styles.orderCard,
-        {
-          opacity: fadeAnim,
-          transform: [{ translateY: slideAnim }]
-        }
-      ]}
-    >
-      <TouchableOpacity 
-        style={styles.cardContent}
-        onPress={() => handleOrderPress(order)}
-        activeOpacity={0.8}
+  const renderOrderCard = (order, index) => {
+    // Solo hacer swipeable si el pedido está entregado
+    const isDelivered = order.estado === 'Entregado';
+    
+    const cardContent = (
+      <Animated.View 
+        style={[
+          styles.orderCard,
+          {
+            opacity: fadeAnim,
+            transform: [{ translateY: slideAnim }]
+          }
+        ]}
       >
-        <LinearGradient
-          colors={['rgba(255, 255, 255, 0.1)', 'rgba(255, 255, 255, 0.05)']}
-          style={styles.cardGradient}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 1 }}
+        <TouchableOpacity 
+          style={styles.cardContent}
+          onPress={() => handleOrderPress(order)}
+          activeOpacity={0.8}
         >
-          <View style={styles.cardHeader}>
-            <View style={styles.orderNumberContainer}>
-              <Text style={styles.orderNumber}>#{index + 1}</Text>
-              {order.coordinate && (
-                <View style={styles.gpsIcon}>
-                  <MaterialIcons name="gps-fixed" size={10} color="#4ECB71" />
+          <LinearGradient
+            colors={['rgba(255, 255, 255, 0.1)', 'rgba(255, 255, 255, 0.05)']}
+            style={styles.cardGradient}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+          >
+            <View style={styles.cardHeader}>
+              <View style={styles.orderNumberContainer}>
+                <Text style={styles.orderNumber}>#{index + 1}</Text>
+                {order.coordinate && (
+                  <View style={styles.gpsIcon}>
+                    <MaterialIcons name="gps-fixed" size={10} color="#4ECB71" />
+                  </View>
+                )}
+              </View>
+              
+              <View style={styles.statusContainer}>
+                <View style={[
+                  styles.statusBadge,
+                  isDelivered ? styles.statusDelivered : styles.statusPending
+                ]}>
+                  <Text style={styles.statusText}>
+                    {isDelivered ? 'ENTREGADO' : 'PENDIENTE'}
+                  </Text>
                 </View>
-              )}
+              </View>
             </View>
-            
-            <View style={styles.statusContainer}>
-              <View style={[
-                styles.statusBadge,
-                order.estado === 'Entregado' ? styles.statusDelivered : styles.statusPending
-              ]}>
-                <Text style={styles.statusText}>
-                  {order.estado === 'Entregado' ? 'ENTREGADO' : 'PENDIENTE'}
+
+            <View style={styles.clientInfo}>
+              <View style={styles.clientIcon}>
+                <MaterialIcons name="person" size={20} color="#5CE1E6" />
+              </View>
+              <View style={styles.clientDetails}>
+                <Text style={styles.clientName}>{order.cliente || 'Cliente no disponible'}</Text>
+                <Text style={styles.orderId}>ID: {order.numeroPedido || `ORD-${index + 1000}`}</Text>
+              </View>
+            </View>
+
+            <View style={styles.addressContainer}>
+              <MaterialIcons name="location-on" size={18} color="#FFA726" style={styles.addressIcon} />
+              <Text style={styles.addressText}>
+                {order.informacionContacto?.direccion || 'Dirección no disponible'}
+              </Text>
+            </View>
+
+            <View style={styles.districtContainer}>
+              <View style={styles.districtTag}>
+                <MaterialIcons name="location-city" size={10} color="#5CE1E6" style={{marginRight: 4}} />
+                <Text style={styles.districtText}>{order.distrito || 'SIN DISTRITO'}</Text>
+              </View>
+              
+              <View style={styles.timeContainer}>
+                <MaterialIcons name="access-time" size={14} color="#a0a0c0" />
+                <Text style={styles.timeText}>
+                  {order.coordinate ? '15-30 min' : 'RUTA APROX.'}
                 </Text>
               </View>
             </View>
-          </View>
 
-          <View style={styles.clientInfo}>
-            <View style={styles.clientIcon}>
-              <MaterialIcons name="person" size={20} color="#5CE1E6" />
+            <View style={styles.cardFooter}>
+              <TouchableOpacity 
+                style={styles.detailsButton}
+                onPress={() => handleOrderPress(order)}
+              >
+                <Text style={styles.detailsButtonText}>VER DETALLES</Text>
+                <MaterialIcons name="arrow-forward" size={16} color="#5CE1E6" />
+              </TouchableOpacity>
+              
+              <TouchableOpacity 
+                style={styles.navigateButton}
+                onPress={() => handleNavigateToOrder(order)}
+              >
+                <MaterialIcons name="directions" size={20} color="#FFFFFF" />
+              </TouchableOpacity>
             </View>
-            <View style={styles.clientDetails}>
-              <Text style={styles.clientName}>{order.cliente || 'Cliente no disponible'}</Text>
-              <Text style={styles.orderId}>ID: {order.numeroPedido || `ORD-${index + 1000}`}</Text>
-            </View>
-          </View>
+          </LinearGradient>
+        </TouchableOpacity>
+      </Animated.View>
+    );
 
-          <View style={styles.addressContainer}>
-            <MaterialIcons name="location-on" size={18} color="#FFA726" style={styles.addressIcon} />
-            <Text style={styles.addressText}>
-              {order.informacionContacto?.direccion || 'Dirección no disponible'}
-            </Text>
-          </View>
-
-          <View style={styles.districtContainer}>
-            <View style={styles.districtTag}>
-              <MaterialIcons name="location-city" size={10} color="#5CE1E6" style={{marginRight: 4}} />
-              <Text style={styles.districtText}>{order.distrito || 'SIN DISTRITO'}</Text>
-            </View>
-            
-            <View style={styles.timeContainer}>
-              <MaterialIcons name="access-time" size={14} color="#a0a0c0" />
-              <Text style={styles.timeText}>
-                {order.coordinate ? '15-30 min' : 'RUTA APROX.'}
-              </Text>
-            </View>
-          </View>
-
-          <View style={styles.cardFooter}>
-            <TouchableOpacity 
-              style={styles.detailsButton}
-              onPress={() => handleOrderPress(order)}
-            >
-              <Text style={styles.detailsButtonText}>VER DETALLES</Text>
-              <MaterialIcons name="arrow-forward" size={16} color="#5CE1E6" />
-            </TouchableOpacity>
-            
-            <TouchableOpacity 
-              style={styles.navigateButton}
-              onPress={() => handleNavigateToOrder(order)}
-            >
-              <MaterialIcons name="directions" size={20} color="#FFFFFF" />
-            </TouchableOpacity>
-          </View>
-        </LinearGradient>
-      </TouchableOpacity>
-    </Animated.View>
-  );
-
-  const renderListView = () => (
-    <Animated.View 
-      style={[
-        styles.contentContainer,
-        {
-          opacity: fadeAnim,
-          transform: [{ translateY: slideAnim }]
-        }
-      ]}
-    >
-      <ScrollView 
-        showsVerticalScrollIndicator={false}
-        contentContainerStyle={styles.scrollContent}
-      >
-        <View style={styles.statsQuickView}>
-          <View style={styles.statQuickItem}>
-            <Text style={styles.statQuickNumber}>{filteredOrders.length}</Text>
-            <Text style={styles.statQuickLabel}>TOTAL</Text>
-          </View>
-          <View style={styles.statDivider} />
-          <View style={styles.statQuickItem}>
-            <Text style={[styles.statQuickNumber, { color: '#FFA726' }]}>{pendingCount}</Text>
-            <Text style={styles.statQuickLabel}>PENDIENTES</Text>
-          </View>
-          <View style={styles.statDivider} />
-          <View style={styles.statQuickItem}>
-            <Text style={[styles.statQuickNumber, { color: '#4ECB71' }]}>{deliveredCount}</Text>
-            <Text style={styles.statQuickLabel}>ENTREGADOS</Text>
-          </View>
-        </View>
-
-        <View style={styles.ordersList}>
-          {displayOrders.length > 0 ? (
-            displayOrders.map((order, index) => renderOrderCard(order, index))
-          ) : (
-            <View style={styles.emptyState}>
-              <MaterialIcons name="assignment" size={60} color="rgba(255, 255, 255, 0.2)" />
-              <Text style={styles.emptyTitle}>No hay pedidos</Text>
-              <Text style={styles.emptySubtitle}>
-                {searchQuery ? 'No se encontraron resultados' : 
-                 selectedStatus !== 'all' ? `No hay pedidos ${selectedStatus === 'pending' ? 'pendientes' : 'entregados'}` :
-                 'No hay pedidos en este filtro'}
-              </Text>
-            </View>
-          )}
-        </View>
-
-        <View style={{ height: 100 }} />
-      </ScrollView>
-    </Animated.View>
-  );
-
-  const renderMapView = () => {
-    if (!location || !mapRegion) {
+    // Solo hacer swipeable si está entregado
+    if (isDelivered) {
       return (
-        <View style={styles.mapLoadingContainer}>
-          <ActivityIndicator size="large" color="#5CE1E6" />
-          <Text style={styles.mapLoadingText}>Cargando mapa...</Text>
-        </View>
+        <Swipeable
+          ref={ref => swipeableRefs.current[order.id] = ref}
+          renderRightActions={(progress, dragX) => renderRightActions(progress, dragX, order.id)}
+          rightThreshold={40}
+          friction={2}
+          overshootRight={false}
+          onSwipeableWillOpen={() => {
+            // Cerrar otros swipeables abiertos
+            Object.keys(swipeableRefs.current).forEach(key => {
+              if (key !== order.id && swipeableRefs.current[key]) {
+                swipeableRefs.current[key].close();
+              }
+            });
+          }}
+        >
+          {cardContent}
+        </Swipeable>
       );
     }
 
-    return (
-      <View style={styles.mapContainer}>
-        <MapView
-          style={styles.map}
-          provider={PROVIDER_GOOGLE}
-          region={mapRegion}
-          showsUserLocation={true}
-          showsMyLocationButton={true}
-          mapType={mapType}
-        >
-          {/* Mostrar ruta optimizada si existe */}
-          {routeCoordinates.length > 1 && (
-            <MapViewDirections
-              origin={routeCoordinates[0]}
-              destination={routeCoordinates[routeCoordinates.length - 1]}
-              waypoints={routeCoordinates.length > 2 ? routeCoordinates.slice(1, -1) : []}
-              apikey={GOOGLE_MAPS_API_KEY}
-              strokeWidth={5}
-              strokeColor="#5CE1E6"
-              optimizeWaypoints={true}
-              onReady={result => {
-                // Actualizar con datos más precisos de Google
-                setTotalDistance(result.distance);
-                setEstimatedTime(result.duration);
-              }}
-              onError={(errorMessage) => {
-                console.log('Error de Google Directions:', errorMessage);
-              }}
-            />
-          )}
+    return cardContent;
+  };
 
-          {/* Marcadores de la ruta optimizada */}
-          {optimizedOrderSequence.map((location, index) => (
-            <Marker
-              key={`route-${index}-${location.orderId}`}
-              coordinate={{
-                latitude: location.latitude,
-                longitude: location.longitude,
-              }}
-              title={location.isCurrentLocation ? '📍 TU UBICACIÓN' : `📦 ${location.cliente}`}
-              description={location.isCurrentLocation ? 'Punto de partida' : `${location.distrito}\n${location.direccion}`}
-              onPress={() => {
-                if (!location.isCurrentLocation) {
-                  const order = displayOrders.find(o => o.id === location.orderId);
-                  if (order) handleOrderPress(order);
-                }
-              }}
-            >
-              <View style={[
-                styles.routeMarker,
-                index === 0 && styles.currentLocationMarker,
-                index === optimizedOrderSequence.length - 1 && styles.lastStopMarker
-              ]}>
-                <Text style={styles.markerNumber}>
-                  {index === 0 ? '📍' : index}
-                </Text>
-              </View>
-            </Marker>
-          ))}
-
-          {/* Marcadores de pedidos regulares (si no hay ruta optimizada) */}
-          {!optimizedRoute && displayOrders.map((order, index) => {
-            if (!order.coordinate) return null;
-            
-            return (
-              <Marker
-                key={order.id || index}
-                coordinate={{
-                  latitude: order.coordinate.latitude,
-                  longitude: order.coordinate.longitude,
-                }}
-                title={order.cliente}
-                description={order.distrito}
-                pinColor={order.estado === 'Entregado' ? '#4ECB71' : '#FFA726'}
-                onPress={() => handleOrderPress(order)}
-              >
-                <Callout tooltip onPress={() => handleOrderPress(order)}>
-                  <View style={styles.mapCallout}>
-                    <Text style={styles.mapCalloutTitle}>{order.cliente}</Text>
-                    <Text style={styles.mapCalloutAddress}>
-                      {order.informacionContacto?.direccion}
-                    </Text>
-                    <Text style={styles.mapCalloutDistrict}>{order.distrito}</Text>
-                    <TouchableOpacity 
-                      style={styles.mapCalloutButton}
-                      onPress={() => handleNavigateToOrder(order)}
-                    >
-                      <Text style={styles.mapCalloutButtonText}>NAVEGAR</Text>
-                    </TouchableOpacity>
-                  </View>
-                </Callout>
-              </Marker>
-            );
-          })}
-        </MapView>
-
-        {/* Información de la ruta optimizada */}
-        {optimizedRoute && (
-          <View style={styles.routeInfoContainer}>
-            <View style={styles.routeInfoCard}>
-              <View style={styles.routeInfoHeader}>
-                <Text style={styles.routeInfoTitle}>🗺️ RUTA OPTIMIZADA</Text>
-                <TouchableOpacity onPress={handleClearRoute} style={styles.clearRouteButton}>
-                  <MaterialIcons name="close" size={20} color="#FFFFFF" />
-                </TouchableOpacity>
-              </View>
-              
-              <View style={styles.routeStats}>
-                <View style={styles.routeStatItem}>
-                  <MaterialIcons name="directions" size={16} color="#5CE1E6" />
-                  <Text style={styles.routeStatText}>
-                    {totalDistance.toFixed(2)} km
-                  </Text>
-                </View>
-                <View style={styles.routeStatDivider} />
-                <View style={styles.routeStatItem}>
-                  <MaterialIcons name="access-time" size={16} color="#5CE1E6" />
-                  <Text style={styles.routeStatText}>
-                    {Math.round(estimatedTime)} min
-                  </Text>
-                </View>
-                <View style={styles.routeStatDivider} />
-                <View style={styles.routeStatItem}>
-                  <MaterialIcons name="location-pin" size={16} color="#5CE1E6" />
-                  <Text style={styles.routeStatText}>
-                    {optimizedRoute.stopCount} paradas
-                  </Text>
-                </View>
-              </View>
-
-              <TouchableOpacity 
-                style={styles.openInMapsButton}
-                onPress={openRouteInGoogleMaps}
-              >
-                <LinearGradient
-                  colors={['#4ECB71', '#2E7D32']}
-                  style={styles.openInMapsGradient}
-                  start={{ x: 0, y: 0 }}
-                  end={{ x: 1, y: 0 }}
-                >
-                  <MaterialIcons name="open-in-new" size={16} color="#FFFFFF" />
-                  <Text style={styles.openInMapsText}>ABRIR EN GOOGLE MAPS</Text>
-                </LinearGradient>
-              </TouchableOpacity>
-            </View>
-          </View>
-        )}
-
-        <View style={styles.mapControls}>
-          <TouchableOpacity 
-            style={styles.mapControlButton}
-            onPress={() => setMapType(mapType === 'standard' ? 'satellite' : 'standard')}
-          >
-            <MaterialIcons 
-              name={mapType === 'standard' ? 'satellite' : 'map'} 
-              size={24} 
-              color="#FFFFFF" 
-            />
-          </TouchableOpacity>
-          
-          <TouchableOpacity 
-            style={styles.mapControlButton}
-            onPress={() => {
-              setMapRegion({
-                ...mapRegion,
-                latitudeDelta: Math.max(mapRegion.latitudeDelta * 0.5, 0.001),
-                longitudeDelta: Math.max(mapRegion.longitudeDelta * 0.5, 0.001),
-              });
-            }}
-          >
-            <MaterialIcons name="zoom-in" size={24} color="#FFFFFF" />
-          </TouchableOpacity>
-
-          <TouchableOpacity 
-            style={styles.mapControlButton}
-            onPress={() => {
-              setMapRegion({
-                ...mapRegion,
-                latitudeDelta: Math.min(mapRegion.latitudeDelta * 2, 0.5),
-                longitudeDelta: Math.min(mapRegion.longitudeDelta * 2, 0.5),
-              });
-            }}
-          >
-            <MaterialIcons name="zoom-out" size={24} color="#FFFFFF" />
-          </TouchableOpacity>
-
-          <TouchableOpacity 
-            style={styles.mapControlButton}
-            onPress={() => {
-              Location.getCurrentPositionAsync({}).then(loc => {
-                setMapRegion({
-                  latitude: loc.coords.latitude,
-                  longitude: loc.coords.longitude,
-                  latitudeDelta: 0.05,
-                  longitudeDelta: 0.05,
-                });
-              });
-            }}
-          >
-            <MaterialIcons name="my-location" size={24} color="#FFFFFF" />
-          </TouchableOpacity>
+  const renderListView = () => (
+  <Animated.View 
+    style={[
+      styles.contentContainer,
+      {
+        opacity: fadeAnim,
+        transform: [{ translateY: slideAnim }]
+      }
+    ]}
+  >
+    <ScrollView 
+      showsVerticalScrollIndicator={false}
+      contentContainerStyle={styles.scrollContent}
+    >
+      <View style={styles.statsQuickView}>
+        <View style={styles.statQuickItem}>
+          <Text style={styles.statQuickNumber}>{filteredOrders.length}</Text>
+          <Text style={styles.statQuickLabel}>TOTAL</Text>
+        </View>
+        <View style={styles.statDivider} />
+        <View style={styles.statQuickItem}>
+          <Text style={[styles.statQuickNumber, { color: '#FFA726' }]}>{pendingCount}</Text>
+          <Text style={styles.statQuickLabel}>PENDIENTES</Text>
+        </View>
+        <View style={styles.statDivider} />
+        <View style={styles.statQuickItem}>
+          <Text style={[styles.statQuickNumber, { color: '#4ECB71' }]}>{deliveredCount}</Text>
+          <Text style={styles.statQuickLabel}>ENTREGADOS</Text>
         </View>
       </View>
-    );
-  };
+
+      <View style={styles.ordersList}>
+        {displayOrders.length > 0 ? (
+          displayOrders.map((order, index) => {
+            // Solo hacer swipeable si el pedido está entregado
+            const isDelivered = order.estado === 'Entregado';
+            
+            const cardContent = (
+              <Animated.View 
+                key={order.id} // Key aquí
+                style={[
+                  styles.orderCard,
+                  {
+                    opacity: fadeAnim,
+                    transform: [{ translateY: slideAnim }]
+                  }
+                ]}
+              >
+                <TouchableOpacity 
+                  style={styles.cardContent}
+                  onPress={() => handleOrderPress(order)}
+                  activeOpacity={0.8}
+                >
+                  <LinearGradient
+                    colors={['rgba(255, 255, 255, 0.1)', 'rgba(255, 255, 255, 0.05)']}
+                    style={styles.cardGradient}
+                    start={{ x: 0, y: 0 }}
+                    end={{ x: 1, y: 1 }}
+                  >
+                    <View style={styles.cardHeader}>
+                      <View style={styles.orderNumberContainer}>
+                        <Text style={styles.orderNumber}>#{index + 1}</Text>
+                        {order.coordinate && (
+                          <View style={styles.gpsIcon}>
+                            <MaterialIcons name="gps-fixed" size={10} color="#4ECB71" />
+                          </View>
+                        )}
+                      </View>
+                      
+                      <View style={styles.statusContainer}>
+                        <View style={[
+                          styles.statusBadge,
+                          isDelivered ? styles.statusDelivered : styles.statusPending
+                        ]}>
+                          <Text style={styles.statusText}>
+                            {isDelivered ? 'ENTREGADO' : 'PENDIENTE'}
+                          </Text>
+                        </View>
+                      </View>
+                    </View>
+
+                    <View style={styles.clientInfo}>
+                      <View style={styles.clientIcon}>
+                        <MaterialIcons name="person" size={20} color="#5CE1E6" />
+                      </View>
+                      <View style={styles.clientDetails}>
+                        <Text style={styles.clientName}>{order.cliente || 'Cliente no disponible'}</Text>
+                        <Text style={styles.orderId}>ID: {order.numeroPedido || `ORD-${index + 1000}`}</Text>
+                      </View>
+                    </View>
+
+                    <View style={styles.addressContainer}>
+                      <MaterialIcons name="location-on" size={18} color="#FFA726" style={styles.addressIcon} />
+                      <Text style={styles.addressText}>
+                        {order.informacionContacto?.direccion || 'Dirección no disponible'}
+                      </Text>
+                    </View>
+
+                    <View style={styles.districtContainer}>
+                      <View style={styles.districtTag}>
+                        <MaterialIcons name="location-city" size={10} color="#5CE1E6" style={{marginRight: 4}} />
+                        <Text style={styles.districtText}>{order.distrito || 'SIN DISTRITO'}</Text>
+                      </View>
+                      
+                      <View style={styles.timeContainer}>
+                        <MaterialIcons name="access-time" size={14} color="#a0a0c0" />
+                        <Text style={styles.timeText}>
+                          {order.coordinate ? '15-30 min' : 'RUTA APROX.'}
+                        </Text>
+                      </View>
+                    </View>
+
+                    <View style={styles.cardFooter}>
+                      <TouchableOpacity 
+                        style={styles.detailsButton}
+                        onPress={() => handleOrderPress(order)}
+                      >
+                        <Text style={styles.detailsButtonText}>VER DETALLES</Text>
+                        <MaterialIcons name="arrow-forward" size={16} color="#5CE1E6" />
+                      </TouchableOpacity>
+                      
+                      <TouchableOpacity 
+                        style={styles.navigateButton}
+                        onPress={() => handleNavigateToOrder(order)}
+                      >
+                        <MaterialIcons name="directions" size={20} color="#FFFFFF" />
+                      </TouchableOpacity>
+                    </View>
+                  </LinearGradient>
+                </TouchableOpacity>
+              </Animated.View>
+            );
+
+            // Solo hacer swipeable si está entregado
+            if (isDelivered) {
+              return (
+                <Swipeable
+                  key={order.id} // Key en Swipeable también
+                  ref={ref => swipeableRefs.current[order.id] = ref}
+                  renderRightActions={(progress, dragX) => renderRightActions(progress, dragX, order.id)}
+                  rightThreshold={40}
+                  friction={2}
+                  overshootRight={false}
+                  onSwipeableWillOpen={() => {
+                    // Cerrar otros swipeables abiertos
+                    Object.keys(swipeableRefs.current).forEach(key => {
+                      if (key !== order.id && swipeableRefs.current[key]) {
+                        swipeableRefs.current[key].close();
+                      }
+                    });
+                  }}
+                >
+                  {cardContent}
+                </Swipeable>
+              );
+            }
+
+            return cardContent;
+          })
+        ) : (
+          <View style={styles.emptyState}>
+            <MaterialIcons name="assignment" size={60} color="rgba(255, 255, 255, 0.2)" />
+            <Text style={styles.emptyTitle}>No hay pedidos</Text>
+            <Text style={styles.emptySubtitle}>
+              {searchQuery ? 'No se encontraron resultados' : 
+               selectedStatus !== 'all' ? `No hay pedidos ${selectedStatus === 'pending' ? 'pendientes' : 'entregados'}` :
+               'No hay pedidos en este filtro'}
+            </Text>
+          </View>
+        )}
+      </View>
+
+      <View style={{ height: 100 }} />
+    </ScrollView>
+  </Animated.View>
+);
 
   const renderBottomBar = () => (
     <View style={styles.bottomBar}>
@@ -1406,6 +1400,8 @@ const styles = {
   orderCard: {
     borderRadius: 12,
     overflow: 'hidden',
+    marginHorizontal: 0,
+    marginVertical: 6,
   },
   cardContent: {
     flex: 1,
@@ -1752,6 +1748,30 @@ const styles = {
     fontWeight: 'bold',
     color: '#FFFFFF',
     marginLeft: 10,
+  },
+  deleteAction: {
+    justifyContent: 'center',
+    alignItems: 'flex-end',
+    marginVertical: 6,
+    marginRight: 20,
+  },
+  deleteButton: {
+    width: 80,
+    height: '100%',
+    borderRadius: 12,
+    overflow: 'hidden',
+  },
+  deleteGradient: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 10,
+  },
+  deleteText: {
+    color: '#FFFFFF',
+    fontSize: 10,
+    fontWeight: 'bold',
+    marginTop: 4,
   },
   phoneRowContainer: {
     flexDirection: 'row',

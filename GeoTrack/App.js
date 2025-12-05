@@ -2,6 +2,7 @@ import React from 'react';
 import { NavigationContainer } from '@react-navigation/native';
 import { createStackNavigator } from '@react-navigation/stack';
 import { SafeAreaProvider } from 'react-native-safe-area-context'; 
+import 'react-native-gesture-handler';
 
 import { OrdersProvider } from './src/context/OrdersContext'; 
 
