@@ -22,17 +22,20 @@
         "backgroundColor": "#ffffff"
       },
       "edgeToEdgeEnabled": true,
-      "package": "com.flavio.geotrack", 
-      
-      "config": {
-        
-      } 
+      "package": "com.flavio.geotrack",
+      "config": {}
     },
     "web": {
       "favicon": "./assets/favicon.png"
     },
     "plugins": [
       "expo-web-browser"
-    ]
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "6c53bed3-6fa8-42e5-adab-93b6a8cb3020"
+      }
+    },
+    "owner": "xalo28"
   }
 }
