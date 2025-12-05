@@ -21,7 +21,14 @@
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#ffffff"
       },
-      "edgeToEdgeEnabled": true
+      "edgeToEdgeEnabled": true,
+      "package": "com.flavio.geotrack", 
+      
+      "config": {
+        "googleMaps": {
+          "apiKey": "AIzaSyCaD2fXca4-pOhRtBN9-3OaCrJLvU27Vbw"
+        }
+      } 
     },
     "web": {
       "favicon": "./assets/favicon.png"

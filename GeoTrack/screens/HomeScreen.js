@@ -101,7 +101,6 @@ const HomeScreen = ({ navigation }) => {
   const handleDistrictPress = (districtData) => {
     navigation.navigate('Pedidos', { 
       districtFilter: districtData.name,
-      districtOrders: districtData.orders 
     });
   };
 

@@ -7,6 +7,7 @@ import {
   Dimensions, 
   Alert, 
   ActivityIndicator,
+  Linking, 
   Animated,
   SafeAreaView,
   Modal,
@@ -23,7 +24,7 @@ import { useOrders } from '../context/OrdersContext';
 const { width, height } = Dimensions.get('window');
 
 const PedidosScreen = ({ navigation, route }) => {
-  const { districtFilter = 'TODOS', districtOrders = [] } = route.params || {};
+const { districtFilter = 'TODOS' } = route.params || {}; 
   const { orders, markAsDelivered } = useOrders();
 
   const [selectedOrder, setSelectedOrder] = useState(null);
@@ -33,6 +34,21 @@ const PedidosScreen = ({ navigation, route }) => {
   const [searchQuery, setSearchQuery] = useState('');
   const [activeBottomTab, setActiveBottomTab] = useState('inicio');
   
+  const handleSMS = () => {
+    if (selectedOrder?.informacionContacto?.telefono) {
+      const phoneNumber = selectedOrder.informacionContacto.telefono.replace(/\D/g, '');
+      const message = `Hola ${selectedOrder.cliente}, le informamos que su pedido ${selectedOrder.numeroPedido} está en camino a su dirección.`;
+      
+      // La sintaxis cambia ligeramente entre iOS y Android para el cuerpo del mensaje
+      const separator = Platform.OS === 'ios' ? '&' : '?';
+      const url = `sms:${phoneNumber}${separator}body=${encodeURIComponent(message)}`;
+
+      Linking.openURL(url).catch(err => 
+        Alert.alert('Error', 'No se pudo abrir la aplicación de mensajes')
+      );
+    }
+  };
+
   const [location, setLocation] = useState(null);
   const [errorMsg, setErrorMsg] = useState(null);
   const [mapRegion, setMapRegion] = useState(null);
@@ -42,11 +58,9 @@ const PedidosScreen = ({ navigation, route }) => {
   const slideAnim = useRef(new Animated.Value(20)).current;
   const mapAnim = useRef(new Animated.Value(0)).current;
 
-  const filteredOrders = districtOrders.length > 0 
-    ? districtOrders 
-    : orders.filter(order => 
-        districtFilter === 'TODOS' ? true : order.distrito === districtFilter
-      );
+  const filteredOrders = orders.filter(order => 
+    districtFilter === 'TODOS' ? true : order.distrito === districtFilter
+  );
 
   const displayOrders = filteredOrders.filter(order => {
     const statusMatch = selectedStatus === 'all' ? true : 
@@ -513,14 +527,26 @@ const PedidosScreen = ({ navigation, route }) => {
                 <View style={styles.modalSection}>
                   <Text style={styles.modalSectionTitle}>Información de Contacto</Text>
                   
-                  <TouchableOpacity style={styles.modalContactButton} onPress={handleCall}>
-                    <MaterialIcons name="phone" size={20} color="#5CE1E6" />
-                    <Text style={styles.modalContactButtonText}>{selectedOrder.informacionContacto?.telefono || 'No disponible'}</Text>
-                  </TouchableOpacity>
+                  {/* CAMBIO AQUI: Contenedor fila para Telefono y SMS */}
+                  <View style={styles.phoneRowContainer}>
+                    <TouchableOpacity style={[styles.modalContactButton, styles.flex1]} onPress={handleCall}>
+                      <MaterialIcons name="phone" size={20} color="#5CE1E6" />
+                      <Text style={styles.modalContactButtonText}>
+                        {selectedOrder.informacionContacto?.telefono || 'No disponible'}
+                      </Text>
+                    </TouchableOpacity>
+
+                    {/* Nuevo Botón de Carta/SMS */}
+                    <TouchableOpacity style={styles.smsButton} onPress={handleSMS}>
+                      <MaterialIcons name="mail" size={22} color="#FFFFFF" />
+                    </TouchableOpacity>
+                  </View>
                   
                   <TouchableOpacity style={styles.modalContactButton} onPress={handleOpenMaps}>
                     <MaterialIcons name="location-on" size={20} color="#5CE1E6" />
-                    <Text style={styles.modalContactButtonText}>{selectedOrder.informacionContacto?.direccion || 'No disponible'}</Text>
+                    <Text style={styles.modalContactButtonText}>
+                      {selectedOrder.informacionContacto?.direccion || 'No disponible'}
+                    </Text>
                   </TouchableOpacity>
                 </View>
 
@@ -1163,6 +1189,29 @@ const styles = {
     fontWeight: 'bold',
     color: '#FFFFFF',
     marginLeft: 8,
+  },
+  phoneRowContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    marginBottom: 10,
+  },
+  flex1: {
+    flex: 1,
+    marginBottom: 0, 
+  },
+  smsButton: {
+    width: 50,
+    height: 50, 
+    backgroundColor: '#5CE1E6', 
+    borderRadius: 10,
+    justifyContent: 'center',
+    alignItems: 'center',
+    shadowColor: '#5CE1E6',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
+    elevation: 3,
   },
   bottomBar: {
     position: 'absolute',

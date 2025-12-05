@@ -37,8 +37,8 @@ const LoginScreen = ({ navigation }) => {
   const slideAnim = useState(new Animated.Value(30))[0];
   const pulseAnim = useState(new Animated.Value(1))[0];
 
-  const redirectUri = makeRedirectUri({ scheme: 'geotrack' });
-
+  const redirectUri = makeRedirectUri({ scheme: 'geotrack',useProxy: true });
+  console.log("TU URL DE REDIRECCION ES:", redirectUri);
   const [request, response, promptAsync] = useAuthRequest(
     {
       clientId: AUTH0_CLIENT_ID,
@@ -111,7 +111,7 @@ const LoginScreen = ({ navigation }) => {
 
   const handleLogin = () => {
     setLoading(true);
-    promptAsync({ useProxy: false });
+    promptAsync({ useProxy: true });
   };
 
   const AnimatedTouchableOpacity = Animated.createAnimatedComponent(TouchableOpacity);
