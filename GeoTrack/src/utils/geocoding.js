@@ -1,6 +1,6 @@
 import * as Location from 'expo-location';
 
-// Mapa de coordenadas aproximadas por distrito
+// Mapa de coordenadas aproximadas por distrito (MANTENIDO COMO RESPALDO)
 export const DISTRICT_COORDINATES = {
   'SAN JUAN DE LURIGANCHO': { latitude: -11.9804, longitude: -76.9995 },
   'SANTIAGO DE SURCO': { latitude: -12.1507, longitude: -76.9963 },
@@ -33,22 +33,47 @@ export const DISTRICT_COORDINATES = {
   'PUCUSANA': { latitude: -12.4667, longitude: -76.8000 }
 };
 
-// Función para obtener coordenadas aproximadas por distrito
+// Obtiene la API Key del entorno
+const GOOGLE_API_KEY = process.env.EXPO_PUBLIC_GOOGLE_MAPS_API_KEY;
+
+// Función para obtener coordenadas exactas usando Google Geocoding API
+export const getPreciseCoordinates = async (address) => {
+  if (!address) return null;
+
+  try {
+    const encodedAddress = encodeURIComponent(address);
+    // Usamos la API de Geocoding directamente para máxima precisión
+    const response = await fetch(
+      `https://maps.googleapis.com/maps/api/geocode/json?address=${encodedAddress}&key=${GOOGLE_API_KEY}`
+    );
+    const data = await response.json();
+
+    if (data.status === 'OK' && data.results.length > 0) {
+      const location = data.results[0].geometry.location;
+      console.log('Coordenadas precisas encontradas:', location);
+      return {
+        latitude: location.lat,
+        longitude: location.lng
+      };
+    }
+  } catch (error) {
+    console.error("Error en geocodificación precisa:", error);
+  }
+  return null;
+};
+
+// Función para obtener coordenadas aproximadas por distrito (Legacy/Fallback)
 export const getApproximateCoordinates = (district) => {
-  // Si el distrito está en nuestro mapa, usar sus coordenadas
   if (DISTRICT_COORDINATES[district]) {
     const baseCoords = DISTRICT_COORDINATES[district];
-    
-    // Agregar un pequeño offset aleatorio dentro del distrito (~500m)
-    const latOffset = (Math.random() * 0.01 - 0.005); // +/- 0.005 grados (~550m)
-    const lngOffset = (Math.random() * 0.01 - 0.005); // +/- 0.005 grados (~550m)
+    const latOffset = (Math.random() * 0.01 - 0.005);
+    const lngOffset = (Math.random() * 0.01 - 0.005);
 
     return {
       latitude: baseCoords.latitude + latOffset,
       longitude: baseCoords.longitude + lngOffset,
     };
   } else {
-    // Coordenadas por defecto de Lima centro con offset
     const baseCoords = { latitude: -12.0464, longitude: -77.0428 };
     const latOffset = (Math.random() * 0.02 - 0.01);
     const lngOffset = (Math.random() * 0.02 - 0.01);
@@ -60,26 +85,17 @@ export const getApproximateCoordinates = (district) => {
   }
 };
 
-// Función para geocodificar la dirección
+// Función para geocodificar la dirección (Wrapper que intenta ser preciso primero)
 export const geocodeAddress = async (address, district) => {
-  try {
-    console.log('Intentando geocodificar:', `${address}, ${district}, Lima, Perú`);
-    
-    // Intentar con la API de geocodificación de Expo
-    const geocoded = await Location.geocodeAsync(`${address}, ${district}, Lima, Perú`);
-    
-    if (geocoded && geocoded.length > 0) {
-      console.log('Geocodificación exitosa:', geocoded[0]);
-      return {
-        latitude: geocoded[0].latitude,
-        longitude: geocoded[0].longitude,
-      };
-    } else {
-      console.log('No se encontraron resultados, usando coordenadas aproximadas');
-      return getApproximateCoordinates(district);
-    }
-  } catch (error) {
-    console.log('Error en geocodificación, usando coordenadas aproximadas:', error);
-    return getApproximateCoordinates(district);
+  // Primero intentamos la búsqueda exacta
+  const fullAddress = `${address}, ${district}, Lima, Peru`;
+  const preciseCoords = await getPreciseCoordinates(fullAddress);
+  
+  if (preciseCoords) {
+    return preciseCoords;
   }
+
+  // Si falla, usamos el aproximado
+  console.log('No se encontraron resultados exactos, usando coordenadas aproximadas');
+  return getApproximateCoordinates(district);
 };

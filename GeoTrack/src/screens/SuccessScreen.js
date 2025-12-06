@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { 
   View, 
   Text, 
@@ -11,6 +11,7 @@ import {
 import { LinearGradient } from 'expo-linear-gradient';
 import { MaterialIcons } from '@expo/vector-icons';
 import { useOrders } from '../context/OrdersContext';
+import { getPreciseCoordinates } from '../utils/geocoding'; // Importamos la nueva utilidad
 
 // Componentes
 import SuccessIcon from '../components/success/SuccessIcon';
@@ -57,26 +58,11 @@ const SuccessScreen = ({ navigation, route }) => {
   const productosArray = Array.isArray(productos) ? productos : 
                         (typeof productos === 'string' ? [productos] : ['Producto no especificado']);
   
-  const newOrderData = {
-    numeroPedido: orderNumber,
-    cliente: nombre,
-    informacionContacto: {
-      direccion: dir,
-      telefono: cel
-    },
-    distrito: distrito,
-    productos: productosArray,
-    fechaEscaneo: scanDate,
-    tipoEscaneo: scanType
-  };
-
   const currentDate = new Date();
   const options = { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' };
   const formattedDate = currentDate.toLocaleDateString('es-ES', options).toUpperCase();
 
   useEffect(() => {
-    console.log('Orden creada con datos del QR:', newOrderData);
-    
     const pulseAnimation = Animated.loop(
       Animated.sequence([
         Animated.timing(pulseAnim, {
@@ -107,7 +93,31 @@ const SuccessScreen = ({ navigation, route }) => {
       })
     ]).start();
 
-    addOrder(newOrderData);
+    // Función asíncrona para procesar el pedido con coordenadas precisas
+    const processOrder = async () => {
+      // Intentar obtener coordenadas exactas basadas en la dirección del QR
+      const fullAddress = `${dir}, ${distrito}, Lima, Peru`;
+      const coordinates = await getPreciseCoordinates(fullAddress);
+
+      const newOrderData = {
+        numeroPedido: orderNumber,
+        cliente: nombre,
+        informacionContacto: {
+          direccion: dir,
+          telefono: cel
+        },
+        distrito: distrito,
+        productos: productosArray,
+        fechaEscaneo: scanDate,
+        tipoEscaneo: scanType,
+        coordinate: coordinates // Guardamos las coordenadas exactas si se encuentran
+      };
+
+      console.log('Orden guardada con coordenadas:', coordinates);
+      addOrder(newOrderData);
+    };
+
+    processOrder();
   }, []);
 
   const handleAccept = () => navigation.navigate('Pedidos');

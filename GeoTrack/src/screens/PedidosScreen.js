@@ -23,7 +23,6 @@ import { Platform } from 'react-native';
 import { getApproximateCoordinates } from '../utils/geocoding';
 import { useOrders } from '../context/OrdersContext';
 
-// Importa Gesture Handler
 import { 
   GestureHandlerRootView, 
   Swipeable, 
@@ -36,23 +35,20 @@ const GOOGLE_MAPS_API_KEY = process.env.EXPO_PUBLIC_GOOGLE_MAPS_API_KEY;
 const PedidosScreen = ({ navigation, route }) => {
   const { districtFilter = 'TODOS' } = route.params || {}; 
   
-  // MODIFICADO: Usamos las funciones nuevas para manejar rutas por distrito
   const { 
     orders, 
     markAsDelivered, 
     deleteOrder, 
-    activeRoutes, // Ahora recibimos el objeto con TODAS las rutas
+    activeRoutes, 
     saveRouteForDistrict, 
     clearRouteForDistrict 
   } = useOrders();
 
-  // MODIFICADO: Obtenemos la ruta específica para el distrito actual
   const activeRouteData = activeRoutes ? activeRoutes[districtFilter] : null;
 
   const [selectedOrder, setSelectedOrder] = useState(null);
   const [modalVisible, setModalVisible] = useState(false);
   
-  // Si existe ruta para ESTE distrito, iniciamos en mapa
   const [activeTab, setActiveTab] = useState(activeRouteData ? 'map' : 'list');
   
   const [selectedStatus, setSelectedStatus] = useState('all');
@@ -71,13 +67,9 @@ const PedidosScreen = ({ navigation, route }) => {
 
   const swipeableRefs = useRef(new Map());
 
-  // Efecto para actualizar la vista si cambia el distrito o los datos de la ruta
   useEffect(() => {
     if (activeRouteData) {
       setActiveTab('map');
-    } else {
-      // Si no hay ruta guardada para este distrito, volvemos a lista (opcional)
-      // setActiveTab('list'); 
     }
   }, [districtFilter, activeRouteData]);
 
@@ -348,7 +340,6 @@ const PedidosScreen = ({ navigation, route }) => {
       const stopTimeMinutes = pendingOrders.length * 5;
       const totalTimeMinutes = (travelTimeHours * 60) + stopTimeMinutes;
 
-      // MODIFICADO: Guardamos la ruta asociada al distrito actual (districtFilter)
       const newRouteData = {
         optimizedRoute: {
           sequence: sequence,
@@ -385,7 +376,6 @@ const PedidosScreen = ({ navigation, route }) => {
   };
 
   const openRouteInGoogleMaps = () => {
-    // Usamos activeRouteData (que ya corresponde al distrito actual)
     if (!activeRouteData || !activeRouteData.optimizedRoute || activeRouteData.optimizedRoute.sequence.length < 2) {
       Alert.alert('Error', 'Primero calcula una ruta optimizada.');
       return;
@@ -485,7 +475,6 @@ const PedidosScreen = ({ navigation, route }) => {
     if (selectedOrder) {
       markAsDelivered(selectedOrder.id);
       handleCloseModal();
-      // Opcional: Limpiar ruta si completas un pedido
       if (activeRouteData) {
         clearRouteForDistrict(districtFilter);
       }
@@ -530,7 +519,6 @@ const PedidosScreen = ({ navigation, route }) => {
         { 
           text: 'Limpiar', 
           onPress: () => {
-            // MODIFICADO: Borra solo la ruta del distrito actual
             clearRouteForDistrict(districtFilter);
           }
         }
@@ -737,7 +725,6 @@ const PedidosScreen = ({ navigation, route }) => {
           showsMyLocationButton={true}
           mapType={mapType}
         >
-          {/* MODIFICADO: Renderizamos SOLO la ruta del distrito actual */}
           {activeRouteData?.routeCoordinates && activeRouteData.routeCoordinates.length > 1 && (
             <MapViewDirections
               origin={activeRouteData.routeCoordinates[0]}
@@ -753,7 +740,6 @@ const PedidosScreen = ({ navigation, route }) => {
             />
           )}
 
-          {/* Marcadores de la ruta activa del distrito actual */}
           {activeRouteData?.optimizedOrderSequence && activeRouteData.optimizedOrderSequence.map((location, index) => (
             <Marker
               key={`route-${index}-${location.orderId}`}
@@ -782,7 +768,6 @@ const PedidosScreen = ({ navigation, route }) => {
             </Marker>
           ))}
 
-          {/* Marcadores normales si no hay ruta para este distrito */}
           {!activeRouteData && displayOrders.map((order, index) => {
             if (!order.coordinate) return null;
             
@@ -818,7 +803,6 @@ const PedidosScreen = ({ navigation, route }) => {
           })}
         </MapView>
 
-        {/* Tarjeta de información de ruta del distrito actual */}
         {activeRouteData && (
           <View style={styles.routeInfoContainer}>
             <View style={styles.routeInfoCard}>
@@ -866,6 +850,18 @@ const PedidosScreen = ({ navigation, route }) => {
                   <Text style={styles.openInMapsText}>ABRIR EN GOOGLE MAPS</Text>
                 </LinearGradient>
               </TouchableOpacity>
+
+              {/* BOTÓN AGREGADO: Eliminar ruta actual */}
+              <TouchableOpacity 
+                style={styles.deleteRouteButton}
+                onPress={handleClearRoute}
+              >
+                <View style={styles.deleteRouteContent}>
+                  <MaterialIcons name="delete-outline" size={16} color="#FF6B6B" />
+                  <Text style={styles.deleteRouteText}>ELIMINAR RUTA ACTUAL</Text>
+                </View>
+              </TouchableOpacity>
+
             </View>
           </View>
         )}
@@ -1262,7 +1258,6 @@ const PedidosScreen = ({ navigation, route }) => {
           {activeTab === 'list' ? renderListView() : renderMapView()}
         </View>
 
-        {/* MODIFICADO: Solo mostrar botón si no hay ruta activa para ESTE distrito */}
         {activeTab === 'list' && displayOrders.length > 0 && !activeRouteData && (
           <TouchableOpacity 
             style={styles.enrutarButton}
@@ -1825,6 +1820,24 @@ const styles = {
     fontWeight: 'bold',
     color: '#FFFFFF',
     marginLeft: 8,
+  },
+  // ESTILOS NUEVOS PARA EL BOTÓN DE ELIMINAR RUTA
+  deleteRouteButton: {
+    marginTop: 10,
+    paddingVertical: 8,
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(255, 255, 255, 0.1)',
+    alignItems: 'center',
+  },
+  deleteRouteContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  deleteRouteText: {
+    color: '#FF6B6B',
+    fontSize: 11,
+    fontWeight: 'bold',
+    marginLeft: 5,
   },
   routeMarker: {
     backgroundColor: '#5CE1E6',

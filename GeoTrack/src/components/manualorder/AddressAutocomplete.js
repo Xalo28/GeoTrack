@@ -15,6 +15,7 @@ export const AddressAutocomplete = ({
   label,
   value,
   onChangeText,
+  onLocationSelect, // <--- Nuevo prop para devolver coordenadas
   error,
   district,
   isLoading,
@@ -67,10 +68,32 @@ export const AddressAutocomplete = ({
     }, 600);
   };
 
-  const selectSuggestion = (suggestion) => {
+  const selectSuggestion = async (suggestion) => {
     const cleanAddress = suggestion.description.replace(', Perú', '');
     onChangeText(cleanAddress);
     setShowSuggestions(false);
+
+    // Lógica para obtener coordenadas exactas del Place ID seleccionado
+    if (suggestion.place_id && onLocationSelect) {
+      try {
+        onLoadingChange(true);
+        // Usamos Places Details API para obtener la geometría exacta
+        const response = await fetch(
+          `https://maps.googleapis.com/maps/api/place/details/json?place_id=${suggestion.place_id}&fields=geometry&key=${GOOGLE_API_KEY}`
+        );
+        const data = await response.json();
+        
+        if (data.status === 'OK' && data.result.geometry) {
+          const { lat, lng } = data.result.geometry.location;
+          // Devolvemos las coordenadas exactas al componente padre
+          onLocationSelect({ latitude: lat, longitude: lng });
+        }
+      } catch (error) {
+        console.error("Error obteniendo detalles del lugar", error);
+      } finally {
+        onLoadingChange(false);
+      }
+    }
   };
 
   return (

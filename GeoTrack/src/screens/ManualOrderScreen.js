@@ -10,6 +10,8 @@ import ActionButtons from '../components/manualorder/ActionButtons';
 import { useOrders } from '../context/OrdersContext';
 import { LinearGradient } from 'expo-linear-gradient';
 import { MaterialIcons } from '@expo/vector-icons';
+import { getPreciseCoordinates } from '../utils/geocoding'; // Asegúrate de tener esta importación de los arreglos anteriores
+
 const { width } = Dimensions.get('window');
 
 const formatSpanishDate = () => {
@@ -23,7 +25,9 @@ const formatSpanishDate = () => {
 };
 
 const ManualOrderScreen = ({ navigation, route }) => {
-  const { addOrder } = useOrders();
+  // AGREGADO: clearRouteForDistrict
+  const { addOrder, clearRouteForDistrict } = useOrders();
+  
   const [isSaving, setIsSaving] = useState(false);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [modalScale] = useState(new Animated.Value(0.5));
@@ -32,6 +36,8 @@ const ManualOrderScreen = ({ navigation, route }) => {
   const [districtModal, setDistrictModal] = useState(false);
   const [currentDate] = useState(formatSpanishDate());
   const [isLoadingAddress, setIsLoadingAddress] = useState(false);
+  
+  const [selectedCoordinates, setSelectedCoordinates] = useState(null);
 
   const isEditMode = route.params?.orderData;
   const editOrderData = route.params?.orderData;
@@ -59,6 +65,9 @@ const ManualOrderScreen = ({ navigation, route }) => {
         address: editOrderData.informacionContacto?.direccion || '',
         products: Array.isArray(editOrderData.productos) ? editOrderData.productos.join(', ') : (editOrderData.productos || '')
       });
+      if (editOrderData.coordinate) {
+        setSelectedCoordinates(editOrderData.coordinate);
+      }
     }
     
     Animated.parallel([
@@ -84,6 +93,9 @@ const ManualOrderScreen = ({ navigation, route }) => {
 
   const handleInputChange = (field, value) => {
     setFormData(prev => ({ ...prev, [field]: value }));
+    if (field === 'address') {
+        setSelectedCoordinates(null);
+    }
     if (errors[field]) {
       setErrors(prev => {
         const newErrors = { ...prev };
@@ -135,13 +147,18 @@ const ManualOrderScreen = ({ navigation, route }) => {
     if (validateForm()) {
       try {
         setIsSaving(true);
-        await new Promise(resolve => setTimeout(resolve, 800));
-
+        
         const phoneFormatted = formatPhoneNumber(formData.phone);
         const currentDateObj = new Date();
         const formattedTime = `${String(currentDateObj.getHours()).padStart(2, '0')}:${String(currentDateObj.getMinutes()).padStart(2, '0')}`;
         
         const productsArray = formData.products.split(',').map(p => p.trim()).filter(p => p !== '');
+
+        let finalCoordinates = selectedCoordinates;
+        
+        if (!finalCoordinates && formData.address) {
+            finalCoordinates = await getPreciseCoordinates(`${formData.address}, ${formData.district}, Lima, Peru`);
+        }
 
         const newOrder = {
           numeroPedido: generateOrderId(),
@@ -156,8 +173,12 @@ const ManualOrderScreen = ({ navigation, route }) => {
           fechaCreacionObj: currentDateObj,
           estado: 'pendiente',
           tipo: 'manual',
+          coordinate: finalCoordinates,
           ...(isEditMode && { id: editOrderData.id })
         };
+
+        // --- FIX: Limpiar ruta existente del distrito para forzar recálculo ---
+        await clearRouteForDistrict(formData.district);
 
         addOrder(newOrder);
         setSavedOrder(newOrder);
@@ -173,6 +194,7 @@ const ManualOrderScreen = ({ navigation, route }) => {
               address: '',
               products: ''
             });
+            setSelectedCoordinates(null);
           }, 500);
         }
 
@@ -233,7 +255,6 @@ const ManualOrderScreen = ({ navigation, route }) => {
             </View>
 
             <View style={styles.formContainer}>
-              {/* ID PEDIDO */}
               <InputField
                 label="ID Pedido (Opcional)"
                 value={formData.orderId}
@@ -244,7 +265,6 @@ const ManualOrderScreen = ({ navigation, route }) => {
                 autoCapitalize="characters"
               />
 
-              {/* CLIENTE */}
               <InputField
                 label="Cliente"
                 value={formData.clientName}
@@ -256,7 +276,6 @@ const ManualOrderScreen = ({ navigation, route }) => {
                 autoCapitalize="words"
               />
 
-              {/* TELEFONO */}
               <InputField
                 label="Teléfono"
                 value={formData.phone}
@@ -269,7 +288,6 @@ const ManualOrderScreen = ({ navigation, route }) => {
                 maxLength={15}
               />
 
-              {/* DISTRITO */}
               <InputField
                 label="Distrito"
                 value={formData.district}
@@ -281,18 +299,17 @@ const ManualOrderScreen = ({ navigation, route }) => {
                 onDistrictPress={() => setDistrictModal(true)}
               />
 
-              {/* DIRECCIÓN CON AUTOCOMPLETADO */}
               <AddressAutocomplete
                 label="Dirección"
                 value={formData.address}
                 onChangeText={(v) => handleInputChange('address', v)}
+                onLocationSelect={setSelectedCoordinates}
                 error={errors.address}
                 district={formData.district}
                 isLoading={isLoadingAddress}
                 onLoadingChange={setIsLoadingAddress}
               />
 
-              {/* PRODUCTOS */}
               <InputField
                 label="Productos"
                 value={formData.products}
