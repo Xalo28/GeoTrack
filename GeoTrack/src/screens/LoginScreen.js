@@ -40,8 +40,8 @@ const LoginScreen = ({ navigation }) => {
   const slideAnim = useState(new Animated.Value(30))[0];
   const pulseAnim = useState(new Animated.Value(1))[0];
 
-  const redirectUri = makeRedirectUri({ scheme: 'geotrack', useProxy: false });
-  
+  // const redirectUri = makeRedirectUri({ scheme: 'geotrack', useProxy: false });
+  const redirectUri ="geotrack://dev-usdq4caghn6ibx5y.us.auth0.com/android/com.flavio.geotrack/callback";
   const [request, response, promptAsync] = useAuthRequest(
     {
       clientId: AUTH0_CLIENT_ID,

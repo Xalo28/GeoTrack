@@ -29,7 +29,8 @@ const AUTH0_CLIENT_ID = 'cWXgVdLInYcSnZVi3w3isNhu0G1IKEwi';
 const MenuScreen = ({ navigation }) => {
   const handleLogout = async () => {
     try {
-      const returnTo = makeRedirectUri({ scheme: 'geotrack' });
+      //const returnTo = makeRedirectUri({ scheme: 'geotrack' });
+      const returnTo = "geotrack://";
       const logoutUrl = `https://${AUTH0_DOMAIN}/v2/logout?client_id=${AUTH0_CLIENT_ID}&returnTo=${encodeURIComponent(returnTo)}`;
       
       await WebBrowser.openAuthSessionAsync(logoutUrl, returnTo);
