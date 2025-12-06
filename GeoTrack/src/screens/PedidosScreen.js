@@ -26,7 +26,7 @@ import { useOrders } from '../context/OrdersContext';
 // Importa Gesture Handler
 import { 
   GestureHandlerRootView, 
-  Swipeable,
+  Swipeable, 
   RectButton 
 } from 'react-native-gesture-handler';
 
@@ -35,11 +35,26 @@ const GOOGLE_MAPS_API_KEY = process.env.EXPO_PUBLIC_GOOGLE_MAPS_API_KEY;
 
 const PedidosScreen = ({ navigation, route }) => {
   const { districtFilter = 'TODOS' } = route.params || {}; 
-  const { orders, markAsDelivered, deleteOrder } = useOrders();
+  
+  // MODIFICADO: Usamos las funciones nuevas para manejar rutas por distrito
+  const { 
+    orders, 
+    markAsDelivered, 
+    deleteOrder, 
+    activeRoutes, // Ahora recibimos el objeto con TODAS las rutas
+    saveRouteForDistrict, 
+    clearRouteForDistrict 
+  } = useOrders();
+
+  // MODIFICADO: Obtenemos la ruta específica para el distrito actual
+  const activeRouteData = activeRoutes ? activeRoutes[districtFilter] : null;
 
   const [selectedOrder, setSelectedOrder] = useState(null);
   const [modalVisible, setModalVisible] = useState(false);
-  const [activeTab, setActiveTab] = useState('list');
+  
+  // Si existe ruta para ESTE distrito, iniciamos en mapa
+  const [activeTab, setActiveTab] = useState(activeRouteData ? 'map' : 'list');
+  
   const [selectedStatus, setSelectedStatus] = useState('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [activeBottomTab, setActiveBottomTab] = useState('inicio');
@@ -49,20 +64,22 @@ const PedidosScreen = ({ navigation, route }) => {
   const [mapRegion, setMapRegion] = useState(null);
   const [mapType, setMapType] = useState('standard');
 
-  // Estados para la ruta optimizada
-  const [optimizedRoute, setOptimizedRoute] = useState(null);
   const [isCalculatingRoute, setIsCalculatingRoute] = useState(false);
-  const [routeCoordinates, setRouteCoordinates] = useState([]);
-  const [optimizedOrderSequence, setOptimizedOrderSequence] = useState([]);
-  const [totalDistance, setTotalDistance] = useState(0);
-  const [estimatedTime, setEstimatedTime] = useState(0);
 
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const slideAnim = useRef(new Animated.Value(20)).current;
-  const mapAnim = useRef(new Animated.Value(0)).current;
 
-  // Referencias para los Swipeables
   const swipeableRefs = useRef(new Map());
+
+  // Efecto para actualizar la vista si cambia el distrito o los datos de la ruta
+  useEffect(() => {
+    if (activeRouteData) {
+      setActiveTab('map');
+    } else {
+      // Si no hay ruta guardada para este distrito, volvemos a lista (opcional)
+      // setActiveTab('list'); 
+    }
+  }, [districtFilter, activeRouteData]);
 
   const enhanceOrdersWithCoordinates = (ordersArray) => {
     return ordersArray.map(order => {
@@ -75,7 +92,6 @@ const PedidosScreen = ({ navigation, route }) => {
           }
         };
       }
-      
       return {
         ...order,
         coordinate: getApproximateCoordinates(order.distrito)
@@ -102,8 +118,6 @@ const PedidosScreen = ({ navigation, route }) => {
     return statusMatch && searchMatch;
   });
 
-  // --- CORRECCIÓN AQUÍ: Modificada para excluir el ID actual ---
-  // Función para cerrar todos los Swipeables abiertos EXCEPTO el actual
   const closeAllSwipeables = (excludeId = null) => {
     swipeableRefs.current.forEach((ref, id) => {
       if (ref && id !== excludeId) {
@@ -112,9 +126,7 @@ const PedidosScreen = ({ navigation, route }) => {
     });
   };
 
-  // Función para manejar la eliminación de un pedido
   const handleDeleteOrder = (orderId, orderEstado) => {
-    // Verificar si el pedido está entregado antes de permitir eliminar
     if (orderEstado !== 'Entregado') {
       Alert.alert(
         'No se puede eliminar',
@@ -142,7 +154,6 @@ const PedidosScreen = ({ navigation, route }) => {
   };
   
   const renderRightActions = (progress, dragX, orderId, orderEstado) => {
-    // Calculamos la transición para la animación del botón
     const translateX = dragX.interpolate({
       inputRange: [-100, 0],
       outputRange: [0, 100],
@@ -215,9 +226,8 @@ const PedidosScreen = ({ navigation, route }) => {
     ]).start();
   }, [activeTab]);
 
-  // Función para calcular distancia entre dos puntos (fórmula Haversine)
   const calculateHaversineDistance = (coord1, coord2) => {
-    const R = 6371; // Radio de la Tierra en km
+    const R = 6371; 
     const dLat = (coord2.latitude - coord1.latitude) * Math.PI / 180;
     const dLon = (coord2.longitude - coord1.longitude) * Math.PI / 180;
     const a = 
@@ -227,14 +237,12 @@ const PedidosScreen = ({ navigation, route }) => {
     return R * c;
   };
 
-  // Algoritmo del vecino más cercano
   const calculateNearestNeighbor = (locations) => {
     if (locations.length <= 1) return locations;
 
     const visited = new Set();
     const result = [];
     
-    // Empezar desde la ubicación actual (índice 0)
     let current = locations[0];
     visited.add(0);
     result.push(current);
@@ -267,10 +275,8 @@ const PedidosScreen = ({ navigation, route }) => {
     return result;
   };
 
-  // Calcular distancia total de la ruta
   const calculateTotalDistance = (sequence) => {
     let totalDistance = 0;
-    
     for (let i = 0; i < sequence.length - 1; i++) {
       const distance = calculateHaversineDistance(
         { latitude: sequence[i].latitude, longitude: sequence[i].longitude },
@@ -278,21 +284,17 @@ const PedidosScreen = ({ navigation, route }) => {
       );
       totalDistance += distance;
     }
-    
     return totalDistance;
   };
 
-  // Función principal para calcular ruta optimizada
   const calculateOptimalRoute = async () => {
     try {
       setIsCalculatingRoute(true);
       
-      // Filtrar solo pedidos pendientes CON coordenadas
       const pendingOrders = displayOrders.filter(order => 
         order.estado !== 'Entregado' && order.coordinate
       );
 
-      // Verificar si hay pedidos sin coordenadas (debería ser 0 ahora)
       const ordersWithoutCoords = displayOrders.filter(order => 
         order.estado !== 'Entregado' && !order.coordinate
       );
@@ -308,14 +310,12 @@ const PedidosScreen = ({ navigation, route }) => {
         return;
       }
 
-      // Obtener ubicación actual del usuario
       const currentLocation = await Location.getCurrentPositionAsync({});
       const origin = {
         latitude: currentLocation.coords.latitude,
         longitude: currentLocation.coords.longitude,
       };
 
-      // Crear matriz de coordenadas (incluyendo ubicación actual)
       const locations = [
         { 
           ...origin, 
@@ -335,38 +335,37 @@ const PedidosScreen = ({ navigation, route }) => {
         }))
       ];
 
-      // Calcular secuencia óptima
       const sequence = calculateNearestNeighbor(locations);
       
-      // Preparar coordenadas para mostrar en el mapa
       const routeCoords = sequence.map(loc => ({
         latitude: loc.latitude,
         longitude: loc.longitude,
       }));
 
-      setOptimizedOrderSequence(sequence);
-      setRouteCoordinates(routeCoords);
-
-      // Calcular distancia total estimada
       const totalDistanceKm = calculateTotalDistance(sequence);
-      setTotalDistance(totalDistanceKm);
-
-      // Estimar tiempo (asumiendo 30 km/h en promedio + 5 minutos por parada)
+      
       const travelTimeHours = totalDistanceKm / 30;
       const stopTimeMinutes = pendingOrders.length * 5;
       const totalTimeMinutes = (travelTimeHours * 60) + stopTimeMinutes;
-      setEstimatedTime(totalTimeMinutes);
 
-      setOptimizedRoute({
-        sequence,
+      // MODIFICADO: Guardamos la ruta asociada al distrito actual (districtFilter)
+      const newRouteData = {
+        optimizedRoute: {
+          sequence: sequence,
+          totalDistance: totalDistanceKm,
+          estimatedTime: totalTimeMinutes,
+          stopCount: pendingOrders.length,
+          ordersWithCoords: pendingOrders.length,
+          ordersWithoutCoords: ordersWithoutCoords.length
+        },
+        routeCoordinates: routeCoords,
+        optimizedOrderSequence: sequence,
         totalDistance: totalDistanceKm,
-        estimatedTime: totalTimeMinutes,
-        stopCount: pendingOrders.length,
-        ordersWithCoords: pendingOrders.length,
-        ordersWithoutCoords: ordersWithoutCoords.length
-      });
+        estimatedTime: totalTimeMinutes
+      };
 
-      // Cambiar a vista de mapa automáticamente
+      await saveRouteForDistrict(districtFilter, newRouteData);
+
       setActiveTab('map');
       
       Alert.alert(
@@ -385,32 +384,27 @@ const PedidosScreen = ({ navigation, route }) => {
     }
   };
 
-  // Función para abrir ruta en Google Maps
   const openRouteInGoogleMaps = () => {
-    if (!optimizedRoute || optimizedRoute.sequence.length < 2) {
+    // Usamos activeRouteData (que ya corresponde al distrito actual)
+    if (!activeRouteData || !activeRouteData.optimizedRoute || activeRouteData.optimizedRoute.sequence.length < 2) {
       Alert.alert('Error', 'Primero calcula una ruta optimizada.');
       return;
     }
 
-    const sequence = optimizedRoute.sequence;
+    const sequence = activeRouteData.optimizedRoute.sequence;
     
-    // Construir URL de Google Maps con waypoints optimizados
     let url = 'https://www.google.com/maps/dir/?api=1&';
     
-    // Origen
     url += `origin=${sequence[0].latitude},${sequence[0].longitude}&`;
     
-    // Destino (última ubicación)
     const last = sequence[sequence.length - 1];
     url += `destination=${last.latitude},${last.longitude}&`;
     
-    // Waypoints (todos menos el primero y último)
     if (sequence.length > 2) {
       const waypoints = sequence.slice(1, -1);
       url += `waypoints=${waypoints.map(wp => `${wp.latitude},${wp.longitude}`).join('|')}&`;
     }
     
-    // Optimizar waypoints
     url += 'dir_action=navigate&travelmode=driving';
     
     Linking.openURL(url).catch(err => {
@@ -433,7 +427,6 @@ const PedidosScreen = ({ navigation, route }) => {
   };
 
   const handleOrderPress = (order) => {
-    // Cerrar todos los Swipeables antes de abrir el modal
     closeAllSwipeables();
     setSelectedOrder(order);
     setModalVisible(true);
@@ -457,7 +450,6 @@ const PedidosScreen = ({ navigation, route }) => {
           { 
             text: 'Abrir en Maps', 
             onPress: () => {
-              // Usar coordenadas aproximadas del distrito
               const coords = getApproximateCoordinates(order.distrito);
               const url = `https://www.google.com/maps/dir/?api=1&destination=${coords.latitude},${coords.longitude}&travelmode=driving`;
               Linking.openURL(url);
@@ -469,7 +461,6 @@ const PedidosScreen = ({ navigation, route }) => {
   };
 
   const handleEnrutar = () => {
-    // Contar pedidos pendientes
     const pendingCount = displayOrders.filter(order => order.estado !== 'Entregado').length;
     
     if (pendingCount === 0) {
@@ -479,7 +470,7 @@ const PedidosScreen = ({ navigation, route }) => {
 
     Alert.alert(
       '🚚 Optimizar Ruta de Entrega',
-      `¿Deseas calcular la ruta más óptima para ${pendingCount} pedido(s) pendiente(s)?\n\nTodos los pedidos tienen coordenadas aproximadas de sus distritos.`,
+      `¿Deseas calcular la ruta más óptima para ${pendingCount} pedido(s) pendiente(s) de ${districtFilter}?\n\nTodos los pedidos tienen coordenadas aproximadas de sus distritos.`,
       [
         { text: 'Cancelar', style: 'cancel' },
         { 
@@ -494,10 +485,9 @@ const PedidosScreen = ({ navigation, route }) => {
     if (selectedOrder) {
       markAsDelivered(selectedOrder.id);
       handleCloseModal();
-      // Limpiar ruta si se marca como entregado
-      if (optimizedRoute) {
-        setOptimizedRoute(null);
-        setRouteCoordinates([]);
+      // Opcional: Limpiar ruta si completas un pedido
+      if (activeRouteData) {
+        clearRouteForDistrict(districtFilter);
       }
     }
   };
@@ -534,15 +524,14 @@ const PedidosScreen = ({ navigation, route }) => {
   const handleClearRoute = () => {
     Alert.alert(
       'Limpiar Ruta',
-      '¿Estás seguro de que deseas eliminar la ruta optimizada actual?',
+      `¿Estás seguro de que deseas eliminar la ruta optimizada de ${districtFilter}?`,
       [
         { text: 'Cancelar', style: 'cancel' },
         { 
           text: 'Limpiar', 
           onPress: () => {
-            setOptimizedRoute(null);
-            setRouteCoordinates([]);
-            setOptimizedOrderSequence([]);
+            // MODIFICADO: Borra solo la ruta del distrito actual
+            clearRouteForDistrict(districtFilter);
           }
         }
       ]
@@ -550,7 +539,6 @@ const PedidosScreen = ({ navigation, route }) => {
   };
 
   const renderOrderCard = (order, index) => {
-    // --- CORRECCIÓN AQUÍ: Pasamos el ID para excluirlo del cierre ---
     const onSwipeableWillOpen = () => {
       closeAllSwipeables(order.id);
     };
@@ -570,8 +558,8 @@ const PedidosScreen = ({ navigation, route }) => {
         }
         onSwipeableWillOpen={onSwipeableWillOpen}
         overshootRight={false}
-        friction={2} // Aumentado ligeramente para mejor control
-        rightThreshold={40} // Reducido para facilitar el swipe
+        friction={2}
+        rightThreshold={40}
         containerStyle={styles.swipeableContainer}
       >
         <Animated.View 
@@ -672,10 +660,7 @@ const PedidosScreen = ({ navigation, route }) => {
 
   const pendingCount = filteredOrders.filter(o => o.estado !== 'Entregado').length;
   const deliveredCount = filteredOrders.filter(o => o.estado === 'Entregado').length;
-  const completionRate = filteredOrders.length > 0 
-    ? Math.round((deliveredCount / filteredOrders.length) * 100) 
-    : 0;
-
+  
   const currentDate = new Date();
   const options = { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' };
   const formattedDate = currentDate.toLocaleDateString('es-ES', options).toUpperCase();
@@ -752,29 +737,24 @@ const PedidosScreen = ({ navigation, route }) => {
           showsMyLocationButton={true}
           mapType={mapType}
         >
-          {/* Mostrar ruta optimizada si existe */}
-          {routeCoordinates.length > 1 && (
+          {/* MODIFICADO: Renderizamos SOLO la ruta del distrito actual */}
+          {activeRouteData?.routeCoordinates && activeRouteData.routeCoordinates.length > 1 && (
             <MapViewDirections
-              origin={routeCoordinates[0]}
-              destination={routeCoordinates[routeCoordinates.length - 1]}
-              waypoints={routeCoordinates.length > 2 ? routeCoordinates.slice(1, -1) : []}
+              origin={activeRouteData.routeCoordinates[0]}
+              destination={activeRouteData.routeCoordinates[activeRouteData.routeCoordinates.length - 1]}
+              waypoints={activeRouteData.routeCoordinates.length > 2 ? activeRouteData.routeCoordinates.slice(1, -1) : []}
               apikey={GOOGLE_MAPS_API_KEY}
               strokeWidth={5}
               strokeColor="#5CE1E6"
               optimizeWaypoints={true}
-              onReady={result => {
-                // Actualizar con datos más precisos de Google
-                setTotalDistance(result.distance);
-                setEstimatedTime(result.duration);
-              }}
               onError={(errorMessage) => {
                 console.log('Error de Google Directions:', errorMessage);
               }}
             />
           )}
 
-          {/* Marcadores de la ruta optimizada */}
-          {optimizedOrderSequence.map((location, index) => (
+          {/* Marcadores de la ruta activa del distrito actual */}
+          {activeRouteData?.optimizedOrderSequence && activeRouteData.optimizedOrderSequence.map((location, index) => (
             <Marker
               key={`route-${index}-${location.orderId}`}
               coordinate={{
@@ -793,7 +773,7 @@ const PedidosScreen = ({ navigation, route }) => {
               <View style={[
                 styles.routeMarker,
                 index === 0 && styles.currentLocationMarker,
-                index === optimizedOrderSequence.length - 1 && styles.lastStopMarker
+                index === activeRouteData.optimizedOrderSequence.length - 1 && styles.lastStopMarker
               ]}>
                 <Text style={styles.markerNumber}>
                   {index === 0 ? '📍' : index}
@@ -802,8 +782,8 @@ const PedidosScreen = ({ navigation, route }) => {
             </Marker>
           ))}
 
-          {/* Marcadores de pedidos regulares (si no hay ruta optimizada) */}
-          {!optimizedRoute && displayOrders.map((order, index) => {
+          {/* Marcadores normales si no hay ruta para este distrito */}
+          {!activeRouteData && displayOrders.map((order, index) => {
             if (!order.coordinate) return null;
             
             return (
@@ -838,12 +818,12 @@ const PedidosScreen = ({ navigation, route }) => {
           })}
         </MapView>
 
-        {/* Información de la ruta optimizada */}
-        {optimizedRoute && (
+        {/* Tarjeta de información de ruta del distrito actual */}
+        {activeRouteData && (
           <View style={styles.routeInfoContainer}>
             <View style={styles.routeInfoCard}>
               <View style={styles.routeInfoHeader}>
-                <Text style={styles.routeInfoTitle}>🗺️ RUTA OPTIMIZADA</Text>
+                <Text style={styles.routeInfoTitle}>🗺️ RUTA {districtFilter}</Text>
                 <TouchableOpacity onPress={handleClearRoute} style={styles.clearRouteButton}>
                   <MaterialIcons name="close" size={20} color="#FFFFFF" />
                 </TouchableOpacity>
@@ -853,21 +833,21 @@ const PedidosScreen = ({ navigation, route }) => {
                 <View style={styles.routeStatItem}>
                   <MaterialIcons name="directions" size={16} color="#5CE1E6" />
                   <Text style={styles.routeStatText}>
-                    {totalDistance.toFixed(2)} km
+                    {activeRouteData.totalDistance?.toFixed(2)} km
                   </Text>
                 </View>
                 <View style={styles.routeStatDivider} />
                 <View style={styles.routeStatItem}>
                   <MaterialIcons name="access-time" size={16} color="#5CE1E6" />
                   <Text style={styles.routeStatText}>
-                    {Math.round(estimatedTime)} min
+                    {Math.round(activeRouteData.estimatedTime || 0)} min
                   </Text>
                 </View>
                 <View style={styles.routeStatDivider} />
                 <View style={styles.routeStatItem}>
                   <MaterialIcons name="location-pin" size={16} color="#5CE1E6" />
                   <Text style={styles.routeStatText}>
-                    {optimizedRoute.stopCount} paradas
+                    {activeRouteData.optimizedRoute?.stopCount || 0} paradas
                   </Text>
                 </View>
               </View>
@@ -1282,7 +1262,8 @@ const PedidosScreen = ({ navigation, route }) => {
           {activeTab === 'list' ? renderListView() : renderMapView()}
         </View>
 
-        {activeTab === 'list' && displayOrders.length > 0 && (
+        {/* MODIFICADO: Solo mostrar botón si no hay ruta activa para ESTE distrito */}
+        {activeTab === 'list' && displayOrders.length > 0 && !activeRouteData && (
           <TouchableOpacity 
             style={styles.enrutarButton}
             onPress={handleEnrutar}
@@ -1303,9 +1284,7 @@ const PedidosScreen = ({ navigation, route }) => {
               ) : (
                 <>
                   <MaterialIcons name="route" size={24} color="#FFFFFF" />
-                  <Text style={styles.enrutarText}>
-                    {optimizedRoute ? 'RUTA CALCULADA' : 'OPTIMIZAR RUTA'}
-                  </Text>
+                  <Text style={styles.enrutarText}>OPTIMIZAR RUTA</Text>
                 </>
               )}
             </LinearGradient>

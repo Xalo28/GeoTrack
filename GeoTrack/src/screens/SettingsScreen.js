@@ -10,15 +10,16 @@ import {
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { MaterialIcons } from '@expo/vector-icons';
-import { Platform } from 'react-native';
+// Agregamos StatusBar aquí junto con Platform
+import { Platform, StatusBar } from 'react-native';
 
 import {
   SettingsHeader,
   SettingsOption,
   SettingsModal,
   ThemeModal,
-  LanguageModal,
-  OfflineModal
+  LanguageModal
+  // OfflineModal eliminado
 } from '../components/settingss';
 
 const { width } = Dimensions.get('window');
@@ -26,10 +27,11 @@ const { width } = Dimensions.get('window');
 const SettingsScreen = ({ navigation }) => {
   const [themeModal, setThemeModal] = useState(false);
   const [languageModal, setLanguageModal] = useState(false);
-  const [offlineModal, setOfflineModal] = useState(false);
+  // Estado offlineModal y offlineEnabled eliminados
+  
   const [selectedTheme, setSelectedTheme] = useState('claro');
   const [selectedLanguage, setSelectedLanguage] = useState('español');
-  const [offlineEnabled, setOfflineEnabled] = useState(false);
+  
   const [modalScale] = useState(new Animated.Value(0.5));
   const [modalOpacity] = useState(new Animated.Value(0));
 
@@ -54,7 +56,6 @@ const SettingsScreen = ({ navigation }) => {
     
     if (modalType === 'theme') setThemeModal(true);
     else if (modalType === 'language') setLanguageModal(true);
-    else if (modalType === 'offline') setOfflineModal(true);
   };
 
   const animateModalOut = () => {
@@ -73,7 +74,6 @@ const SettingsScreen = ({ navigation }) => {
     ]).start(() => {
       setThemeModal(false);
       setLanguageModal(false);
-      setOfflineModal(false);
     });
   };
 
@@ -110,7 +110,13 @@ const SettingsScreen = ({ navigation }) => {
   );
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView 
+      style={[
+        styles.container, 
+        // Corrección aplicada aquí para Android:
+        { paddingTop: Platform.OS === 'android' ? StatusBar.currentHeight : 0 }
+      ]}
+    >
       <LinearGradient
         colors={['#1a1a2e', '#16213e']}
         style={styles.backgroundGradient}
@@ -126,29 +132,19 @@ const SettingsScreen = ({ navigation }) => {
             icon="language"
             label="Idioma"
             value={selectedLanguage.charAt(0).toUpperCase() + selectedLanguage.slice(1)}
-            onPress={() => animateModalIn('language')}
+            onPress={() => {}} /* DESHABILITADO */
             isFirst={true}
           />
           <SettingsOption
             icon={selectedTheme === 'oscuro' ? 'dark-mode' : 'light-mode'}
             label="Tema"
             value={selectedTheme.charAt(0).toUpperCase() + selectedTheme.slice(1)}
-            onPress={() => animateModalIn('theme')}
+            onPress={() => {}} /* DESHABILITADO */
             isLast={true}
           />
         </Section>
 
-        <Section title="SINCRONIZACIÓN" icon="sync">
-          <SettingsOption
-            icon={offlineEnabled ? "wifi-off" : "wifi"}
-            label="Modo Offline"
-            value={offlineEnabled ? 'Activado' : 'Desactivado'}
-            valueColor={offlineEnabled ? '#5CE1E6' : '#a0a0c0'}
-            onPress={() => animateModalIn('offline')}
-            isFirst={true}
-            isLast={true}
-          />
-        </Section>
+        {/* Sección SINCRONIZACIÓN eliminada por completo */}
 
         <AppInfo />
       </ScrollView>
@@ -201,29 +197,7 @@ const SettingsScreen = ({ navigation }) => {
         </SettingsModal>
       </Modal>
 
-      <Modal
-        visible={offlineModal}
-        transparent={true}
-        animationType="none"
-        onRequestClose={animateModalOut}
-      >
-        <SettingsModal 
-          isVisible={offlineModal} 
-          modalScale={modalScale} 
-          modalOpacity={modalOpacity}
-        >
-          <OfflineModal
-            modalScale={modalScale}
-            modalOpacity={modalOpacity}
-            offlineEnabled={offlineEnabled}
-            onToggleOffline={() => {
-              setOfflineEnabled(!offlineEnabled);
-              setTimeout(animateModalOut, 300);
-            }}
-            onClose={animateModalOut}
-          />
-        </SettingsModal>
-      </Modal>
+      {/* Modal Offline eliminado */}
     </SafeAreaView>
   );
 };

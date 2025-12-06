@@ -1,3 +1,5 @@
+import { Linking } from 'react-native'; // <--- ESTO ES LO QUE TE FALTA
+
 export const faqItems = [
   {
     id: 1,
