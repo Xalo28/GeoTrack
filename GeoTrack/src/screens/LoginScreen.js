@@ -40,7 +40,7 @@ const LoginScreen = ({ navigation }) => {
   const slideAnim = useState(new Animated.Value(30))[0];
   const pulseAnim = useState(new Animated.Value(1))[0];
 
-  const redirectUri = makeRedirectUri({ scheme: 'geotrack', useProxy: true });
+  const redirectUri = makeRedirectUri({ scheme: 'geotrack', useProxy: false });
   
   const [request, response, promptAsync] = useAuthRequest(
     {
@@ -114,7 +114,7 @@ const LoginScreen = ({ navigation }) => {
 
   const handleLogin = () => {
     setLoading(true);
-    promptAsync({ useProxy: true });
+    promptAsync({ useProxy: false });
   };
 
   const features = [
