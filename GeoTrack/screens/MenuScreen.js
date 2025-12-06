@@ -94,6 +94,12 @@ const MenuScreen = ({ navigation }) => {
             onPress={() => navigation.navigate('Settings')} 
           />
           <MenuItem 
+            icon="diamond-outline" 
+            title="Paquetes Premium" 
+            onPress={() => navigation.navigate('Packages')} 
+            color="#5CE1E6"
+          />
+          <MenuItem 
             icon="help-circle-outline" 
             title="Ayuda y Soporte" 
             onPress={() => navigation.navigate('Help')} 

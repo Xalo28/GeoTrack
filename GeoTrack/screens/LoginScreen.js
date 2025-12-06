@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { View, StyleSheet, StatusBar, Text, TouchableOpacity, ActivityIndicator, Alert } from 'react-native';
+import { View, StyleSheet, StatusBar, Text, TouchableOpacity, ActivityIndicator, Alert, Platform } from 'react-native';
 import * as WebBrowser from 'expo-web-browser';
 import { makeRedirectUri, useAuthRequest, ResponseType } from 'expo-auth-session';
 import { Header } from 'react-native-elements';
@@ -23,11 +23,15 @@ const discovery = {
 const LoginScreen = ({ navigation }) => {
   const [loading, setLoading] = useState(false);
 
-  // ESTA LÍNEA ES LA CLAVE: Genera la URI dinámica
-  const redirectUri = makeRedirectUri({ scheme: 'geotrack' });
+  // Genera la URI dinámica según la plataforma
+  const redirectUri = Platform.select({
+    web: 'http://localhost:8081', // URL fija para web
+    default: makeRedirectUri({ scheme: 'geotrack' }), // Para mobile
+  });
   
   // Imprímela en la consola para ver cuál es
   console.log("====================================");
+  console.log("PLATAFORMA:", Platform.OS);
   console.log("COPIA ESTA URL EXACTA EN AUTH0:", redirectUri);
   console.log("====================================");
 
